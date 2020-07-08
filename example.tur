@@ -1,9 +1,8 @@
 ! these configurations are from the
 ! book Annotated Turing, and
 ! print out the values following
-! the binary point, which is the
-! binary equivalent of a decimal
-! point
+! the binary point of the fraction
+! 1/4.
 b: none | P0, R | c
 c: none | R     | d
 d: none | P1, R | e
