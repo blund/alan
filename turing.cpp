@@ -311,13 +311,9 @@ void RunMachine(Machine *m, int iterations) {
       break;
     }
   }
-
-  OutputDebugStringA("Job's done!");
-  OutputDebugStringA("\n");
 }
 
-int main(int argc, char *argv[]) {
-  char *filename = argv[1];
+char *ReadSource(char *filename) {
   FILE *file = fopen(filename, "rb");
   fseek(file, 0, SEEK_END);
   long fsize = ftell(file);
@@ -326,8 +322,14 @@ int main(int argc, char *argv[]) {
   char *bytecode = (char *)malloc(fsize + 1);
   fread(bytecode, fsize, 1, file);
   fclose(file);
-  bytecode[fsize] = 0; // Add line-terminator
+  bytecode[fsize] = 0;  // Add line-terminator
 
+  return bytecode;
+}
+
+int main(int argc, char *argv[]) {
+  char *filename = argv[1];
+  char *bytecode = ReadSource(filename);
 
   Machine m = Parse(bytecode);
 
