@@ -4,13 +4,12 @@
 #include <string.h>
 #include <windows.h>
 
-#define TAPE_LENGTH 256
+#define TAPE_LENGTH 128
 #define MAX_BRANCH_COUNT 8
 #define MAX_OPERATION_COUNT 8
 #define MAX_CONF 8
-#define NONE 0
+#define NONE ' '
 #define ELSE 0xff
-#define END 0xf
 #define CONFIGURATION_COUNT 32
 #define CONFIGURATION_LENGTH 32
 
@@ -170,9 +169,9 @@ void Parse(Machine *output, char *code) {
 
       // Avgjør hva match-symbol skal vare, ta hensyn til definerte variabler
       if (strcmp(symbol, "none") == 0) {
-        b->matchSymbol = 0;
+        b->matchSymbol = NONE;
       } else if (strcmp(symbol, "else") == 0) {
-        b->matchSymbol = 0xff;
+        b->matchSymbol = ELSE;
       } else {
         b->matchSymbol = (uint8_t)*symbol;
       }
@@ -217,6 +216,7 @@ inline void Right(Machine *m) { ++m->pointer; }
 inline void Left(Machine *m) { --m->pointer; }
 
 void RunMachine(Machine m, int iterations) {
+  char outputBuffer[TAPE_LENGTH + 1];
   while (iterations-- > 0) {
     // TODO Assert at pointer er innenfor TAPE_LENGTH
     Configuration c = m.configurations[m.configuration];
@@ -263,7 +263,9 @@ void RunMachine(Machine m, int iterations) {
       // for this m-configuration is completed.
       //  This means we can print the tape state
       // and move on to the next m-configuration
-      OutputDebugStringA(m.tape);
+      strcpy(outputBuffer, m.tape);
+      outputBuffer[TAPE_LENGTH] = '\0';
+      OutputDebugStringA(outputBuffer);
       OutputDebugStringA("\n");
       break;
     }
@@ -275,11 +277,18 @@ void RunMachine(Machine m, int iterations) {
 
 int main() {
   Machine m = {};
+  for(int i = 0; i < TAPE_LENGTH; i++) {
+      m.tape[i] = ' ';
+  }
   char *test =
-      "print 0: none, P0 R Px R, print 1\n"
-      "print 1: none, P1 R, print 0\n";
+      "b: none, P0 R, c\n"
+      "c: none, R, d\n"
+      "d: none, P1 R, e\n"
+      "e: none, R, f\n"
+      "f: none, P0 R, e\n";
+
   Parse(&m, test);
-  RunMachine(m, 10);
+  RunMachine(m, 100);
 
   return 0;
 }
