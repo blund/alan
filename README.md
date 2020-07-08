@@ -32,7 +32,7 @@ print 0 or 1: none | P0, R | print 0 or 1; else | P1, R | print 1;
 #### Symbols
 The first field contains a _symbol_. When an _m-configuration_ is executed, a _symbol_ is read from memory, and a branch is selected if its symbol corresponds to the one that is read.
 
-_Symbols_ in this case denotes ascii characters and the keywords `none` and `else`. `none` represents a blank piece of memory, and `else` means the branch matches any symbol read. 
+_Symbols_ in this case denotes ascii characters and the keywords `none` and `else`. `none` represents a blank piece of memory, and `else` means the branch matches any symbol read.
 It is worth noting here that `ÿ` (`0xFF`) is not a valid symbol, as it is used to represent `else` internally. Neither can you actually refer to the _space_ symbol in a configuration, but the `none` keyword translates literally to a space (`0x20`), so that is no issue. Other than that, all sensible ascii letters should be usable.
 
 #### Operations
