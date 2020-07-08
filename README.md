@@ -5,8 +5,8 @@ A turing machine implementation written to run programs from the book _Annotated
 To ease the process of writing one of these programs, I wrote an interpreter that churns out bytecode(?) that the virtual machine can run. 
 It takes in code formated like this:
 ```
-print 0: none, P0 R, print 1
-print 1: none, P1 R, print 0
+print0: none, P0 R, print1
+print1: none, P1 R, print0
 ```
 This particular program will print alternating 1s and 0s. 
 ### Formatting
@@ -22,6 +22,11 @@ After name comes the instructions for the given *m-configuration*. These can bra
 
 ```
 0or1: none, P0 R, 0or1; else, P1 R, 0r1
+```
+Also note that it is ok for names to have spaces in them, for readability:
+
+```
+0 or 1: none, P0 R, 0 or 1
 ```
 Each branch has three fields, separated by commas.
 
