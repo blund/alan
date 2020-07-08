@@ -4,7 +4,7 @@ A turing machine implementation written to run programs from the book _Annotated
 ## What does it do?
 The program is an interpreter for a made up syntax for defining _m-configurations_ for a turing machine. It translates these to bytecode, and then executes the bytecode on a very small virtual machine.
 
-## How do i write programs?
+## How do I write programs?
 To ease the process of writing one of these programs, I wrote an interpreter that churns out bytecode(?) that the virtual machine can run. 
 It takes in code formated like this:
 ```
