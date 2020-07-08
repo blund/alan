@@ -327,13 +327,39 @@ char *ReadSource(char *filename) {
   return bytecode;
 }
 
+int IsNumber(char *string) {
+  char *c;
+  for (c = string; *c != '\0'; c++) {
+    if (!isdigit((int)*c++)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 int main(int argc, char *argv[]) {
-  char *filename = argv[1];
+  int timesToRun;
+  char *filename;
+
+  for (int i = 1; i < argc; ++i) {
+    if (IsNumber(argv[i])) {
+      char *endPtr;
+      timesToRun = strtol(argv[i], &endPtr, 10);
+    } else if (!filename) {
+      filename = argv[i];
+    }
+  }
+
+  if (filename == 0) {
+      std::cout << "Error: no filename specified" << std::endl;
+  }
+  if (timesToRun == 0) {
+      std::cout << "Error: please specify number of passes to make" << std::endl;
+  }
+
   char *bytecode = ReadSource(filename);
-
   Machine m = Parse(bytecode);
-
-  RunMachine(&m, 10);
+  RunMachine(&m, timesToRun);
 
   return 0;
 }
