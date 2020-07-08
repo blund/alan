@@ -1,7 +1,7 @@
 # personal
 build.bat
 shell.bat
-.clang_format
+.clang-format
 
 # for the project
 turing.exe
