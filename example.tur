@@ -1,0 +1,5 @@
+b: none | P0, R | c
+c: none | R     | d
+d: none | P1, R | e
+e: none | R     | f
+f: none | P0, R | e
