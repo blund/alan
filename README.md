@@ -62,14 +62,18 @@ f: none | P0, R | e
 ## Running programs
 At the moment, programs have to be run from the main function.. I will change this so that they can be read by the executable and interpreted on the fly.
 
-## Other info / setting up
-This is currently set up for development in Windows, using MSVC, in a partition `W:` with a folder `build` in the root. Running `shell.bat` will add `cl` to your path. Running `build.bat` will then compile the program. You can just compile it in place, but this is useful for debugging.. I promise.
+## Setting up
+Simply run `make` to compile the executable. You can then run it with `.tur` file following the syntax explained above as an argment, like this:
+```
+turing example.tur
+```
+Just change the makefile to fit your needs, for instance if you want to use a different compiler.
+
 
 ## TODO
-
+- Flags for the executable for displaying every pass, displaying current branch information, perhaps others.
 - Interactive running would be fun. Like manually moving forward in the exeuction, seeing the branch being executed, the tape moving..
 - Uh oh! The tape is a piece of memory. This means that it is very much _not_ infinite in either direction. I will have to see if I can find a reasonable way to move backwards in memory, perhaps allocating more memory dynamically.. We will see.
 - Add more examples! I will type out the sqrt(2)/2 example from the book when printing works, so I can verify that it works..
-- Write a Makefile.. I am currently using an archaic and mystical `build.bat` file that i run in Windows cmd, but I can write this. If not just use `cl` or any compiler for c++ you have lying around..
 - Change c library functions to use safe versions.. This is currently a hot memory mess.
 - Emoji support???
