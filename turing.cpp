@@ -115,7 +115,7 @@ int splitOn(char *slots[], char *text, char *delimiter) {
     return index;
 }
 
-void Parse(Machine *output, char *code) {
+Machine Parse(char *code) {
     // https://www.codingame.com/playgrounds/14213/how-to-play-with-strings-in-c/string-split
     //
     // TODO Hardkodet størrelse
@@ -124,7 +124,11 @@ void Parse(Machine *output, char *code) {
     char codeToParse[265];
     strcpy(codeToParse, code);
 
-    Machine *m = output;
+    Machine m = {};
+    for(int i = 0; i < TAPE_LENGTH; i++) {
+        m.tape[i] = ' ';
+    }
+
     char configNames[CONFIGURATION_COUNT][CONFIGURATION_LENGTH] = {};
 
     // Definer delimitere
@@ -148,7 +152,7 @@ void Parse(Machine *output, char *code) {
         body = trim(body);
 
         int actualIndex = findOrInsert(configNames, name);
-        Configuration *c = &m->configurations[actualIndex];  // TODO shitty navn
+        Configuration *c = &m.configurations[actualIndex];  // TODO shitty navn
 
         char *branches[MAX_BRANCH_COUNT] = {};
         int branchCount = splitOn(branches, body, branchDelim);
@@ -199,6 +203,7 @@ void Parse(Machine *output, char *code) {
             b->nextConfiguration = findOrInsert(configNames, next);
         }
     }
+    return m;
 }
 
 // The operations the machine can perform on the tape.
@@ -290,10 +295,7 @@ void RunMachine(Machine *m, int iterations) {
 }
 
 int main() {
-    Machine m = {};
-    for(int i = 0; i < TAPE_LENGTH; i++) {
-        m.tape[i] = ' ';
-    }
+
     char *test =
         "b: none, P0 R, c\n"
         "c: none, R, d\n"
@@ -301,7 +303,7 @@ int main() {
         "e: none, R, f\n"
         "f: none, P0 R, e\n";
 
-    Parse(&m, test);
+    Machine m = Parse(test);
     RunMachine(&m, 10);
 
     return 0;
