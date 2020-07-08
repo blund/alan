@@ -35,7 +35,14 @@ The first field contains a _symbol_. When an _m-configuration_ is executed, a _s
 In the snippet above, the symbols used were `none` and `else`. These are two special keywords, corresponding to a blank piece of memory and "any symbol" respectively. Other than these, all ascii characters are valid symbols, except for `0` and `ÿ` (which are used internally to represend `none` and `else`).
 
 #### Operations
-The next fields contain the operations to perform for the current branch. This can be a series of several operations, separated by commas. The defined operations are `N`, `P`, `E`, `R` and `L`. `N` corresponds to doing nothing, or a _halt_ in some litterature. `P` is print, and must be followed by a ascii value to be printed in memory. Finally there are `R` and `L`, which correspond to moving right and left in memory.
+The next fields contain the operations to perform for the current branch. This can be a series of several operations, separated by commas. The defined operations are:
+| Operation | Description |
+|-|-|
+| N | Do nothing, or _halt_ as it is called in some litterature |
+| P_ | Print the following ascii symbol (like P1) |
+| E | Erase the symbol of the current pointer position |
+| R | Move pointer location to the right |
+| L | Move pointer location to the left |
 
 #### Next
 The final value is the name of the next *m-configuration* to move to.
