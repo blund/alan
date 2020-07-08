@@ -135,8 +135,8 @@ Machine Parse(char *code) {
     char configDelim[] = "\n";
     char configNameDelim[] = ":";
     char branchDelim[] = ";";
-    char inBranchDelim[] = ",";
-    char operationDelim[] = " ";
+    char inBranchDelim[] = "|";
+    char operationDelim[] = ",";
 
     char *configs[CONFIGURATION_LENGTH] = {};
     int configCount = splitOn(configs, codeToParse, configDelim);
@@ -184,7 +184,7 @@ Machine Parse(char *code) {
             int opCount = splitOn(ops, opsString, operationDelim);
 
             for (int i = 0; i < opCount; ++i) {
-                char *op = ops[i];
+                char *op = trim(ops[i]);
                 if (*op == 'N') {
                     b->operations[i].op = N;
                 } else if (*op == 'P') {
@@ -297,11 +297,11 @@ void RunMachine(Machine *m, int iterations) {
 int main() {
 
     char *test =
-        "b: none, P0 R, c\n"
-        "c: none, R, d\n"
-        "d: none, P1 R, e\n"
-        "e: none, R, f\n"
-        "f: none, P0 R, e\n";
+        "b: none | P0, R | c\n"
+        "c: none | R     | d\n"
+        "d: none | P1, R | e\n"
+        "e: none | R     | f\n"
+        "f: none | P0, R | e\n";
 
     Machine m = Parse(test);
     RunMachine(&m, 10);
