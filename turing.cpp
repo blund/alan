@@ -222,6 +222,7 @@ inline void Left(Machine *m) { --m->pointer; }
 
 void RunMachine(Machine *m, int iterations) {
     char outputBuffer[TAPE_LENGTH + 1];  // Buffer used for printing
+    char pointerBuffer[TAPE_LENGTH + 1];  // Buffer used for displaying where the pointer is
     int topPointerAccessed = 0;  // Value used for determining how much to print
 
     while (iterations-- > 0) {
@@ -282,8 +283,16 @@ void RunMachine(Machine *m, int iterations) {
             // then add a string terminator at the index
             // after the highest pointer accessed, to only
             // print that.
+            for(int i = 0; i < TAPE_LENGTH; i++) {
+                pointerBuffer[i] = ' ';
+            }
+            pointerBuffer[m->pointer] = 'v';
+            pointerBuffer[m->pointer + 1] = '\0';
+
             strcpy(outputBuffer, m->tape);
             outputBuffer[topPointerAccessed] = '\0';
+            OutputDebugStringA(pointerBuffer);
+            OutputDebugStringA("\n");
             OutputDebugStringA(outputBuffer);
             OutputDebugStringA("\n");
             break;
