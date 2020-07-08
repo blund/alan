@@ -340,7 +340,7 @@ int IsNumber(char *string) {
 }
 
 int main(int argc, char *argv[]) {
-  int timesToRun;
+  int timesToRun = -1;
   char *filename;
 
   for (int i = 1; i < argc; ++i) {
@@ -354,9 +354,11 @@ int main(int argc, char *argv[]) {
 
   if (filename == 0) {
     std::cout << "Error: no filename specified" << std::endl;
+    return 1;
   }
-  if (timesToRun == 0) {
+  if (timesToRun == -1) {
     std::cout << "Error: please specify number of passes to make" << std::endl;
+    return 1;
   }
 
   char *bytecode = ReadSource(filename);
