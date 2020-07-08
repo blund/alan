@@ -28,7 +28,7 @@ Also note that it is ok for names to have spaces in them, for readability:
 ```
 0 or 1: none, P0 R, 0 or 1
 ```
-Each branch has three fields, separated by commas.
+Each branch has three fields, separated by commas, declaring the _symbol_, _operation_ and _next configuration_ for that branch.
 
 #### Symbols
 The first field contains a _symbol_. When an _m-configuration_ is executed, a _symbol_ is read from memory, and a branch is selected if its symbol corresponds to the one that is read.
