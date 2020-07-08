@@ -45,3 +45,9 @@ d: none, P1 R, e
 e: none, R, f
 f: none, P0 R, e
 ```
+
+## TODO
+
+- Printing is currently.. broken. The "blank" memory is stored as 0. This will probably be fixed by changing it to the ascii value for a space.
+- Interactive running would be fun. Like manually moving forward in the exeuction, seeing the branch being executed, the tape moving.. 
+- Uh oh! The tape is a piece of memory. This means that it is very much _not_ infinite in either direction. I will have to see if I can find a reasonable way to move backwards in memory, perhaps allocating more memory dynamically.. We will see.
