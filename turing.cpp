@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <iostream>
 
 #define TAPE_LENGTH 128
@@ -10,6 +11,7 @@
 #define MAX_CONF 8
 #define NONE ' '
 #define ELSE 0xff
+#define COMMENT_CHAR '!'
 #define CONFIGURATION_COUNT 32
 #define CONFIGURATION_LENGTH 32
 
@@ -116,10 +118,7 @@ int splitOn(char *slots[], char *text, char *delimiter) {
 }
 
 Machine Parse(char *code) {
-  // https://www.codingame.com/playgrounds/14213/how-to-play-with-strings-in-c/string-split
-  //
   // TODO Hardkodet størrelse
-  //
 
   char codeToParse[265];
   strcpy(codeToParse, code);
@@ -132,21 +131,27 @@ Machine Parse(char *code) {
   char configNames[CONFIGURATION_COUNT][CONFIGURATION_LENGTH] = {};
 
   // Definer delimitere
-  char configDelim[] = "\n";
-  char configNameDelim[] = ":";
-  char branchDelim[] = ";";
-  char inBranchDelim[] = "|";
-  char operationDelim[] = ",";
+  char *lineDelim = "\n";
+  char *commentDelim = "!";
+  char *configNameDelim = ":";
+  char *branchDelim = ";";
+  char *inBranchDelim = "|";
+  char *operationDelim = ",";
 
-  char *configs[CONFIGURATION_LENGTH] = {};
-  int configCount = splitOn(configs, codeToParse, configDelim);
+  char *lines[CONFIGURATION_LENGTH] = {};
+  int lineCount = splitOn(lines, codeToParse, lineDelim);
 
-  for (int i = 0; i < configCount; ++i) {
-    char confToParse[265];
-    strcpy(confToParse, configs[i]);
+  for (int i = 0; i < lineCount; ++i) {
+    char lineToParse[265];
+    strcpy(lineToParse, lines[i]);
+
+    if (*lineToParse == COMMENT_CHAR) {
+        continue;
+    }
+
 
     // Tokeniser de ulike dele av branchen
-    char *name = strtok(confToParse, configNameDelim);
+    char *name = strtok(lineToParse, configNameDelim);
     name = trim(name);
     char *body = strtok(NULL, configNameDelim);
     body = trim(body);
@@ -348,10 +353,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (filename == 0) {
-      std::cout << "Error: no filename specified" << std::endl;
+    std::cout << "Error: no filename specified" << std::endl;
   }
   if (timesToRun == 0) {
-      std::cout << "Error: please specify number of passes to make" << std::endl;
+    std::cout << "Error: please specify number of passes to make" << std::endl;
   }
 
   char *bytecode = ReadSource(filename);
