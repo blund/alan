@@ -45,7 +45,8 @@ d: none, P1 R, e
 e: none, R, f
 f: none, P0 R, e
 ```
-
+## Other info / setting up
+This is currently set up for development in Windows, using MSVC, in a partition `W:` with a folder `build` in the root. Running `shell.bat` will add `cl` to your path. Running `build.bat` will then compile the program. You can just compile it in place, but this is useful for debugging.. I promise.
 ## TODO
 
 - Printing is currently.. broken. The "blank" memory is stored as 0. This will probably be fixed by changing it to the ascii value for a space.
