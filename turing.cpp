@@ -2,9 +2,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
-
-// #include <fstream>
 #include <iostream>
 
 #define TAPE_LENGTH 128
