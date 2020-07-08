@@ -215,13 +215,15 @@ inline void Right(Machine *m) { ++m->pointer; }
 // TODO Assert m->pointer != 0;
 inline void Left(Machine *m) { --m->pointer; }
 
-void RunMachine(Machine m, int iterations) {
+void RunMachine(Machine *m, int iterations) {
   char outputBuffer[TAPE_LENGTH + 1];
+  int topPointerAccessed = 0;
+
   while (iterations-- > 0) {
     // TODO Assert at pointer er innenfor TAPE_LENGTH
-    Configuration c = m.configurations[m.configuration];
+    Configuration c = m->configurations[m->configuration];
     for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; ++branchIndex) {
-      char symbol = m.tape[m.pointer];
+      char symbol = m->tape[m->pointer];
       Branch branch = c.branch[branchIndex];
 
       if (branch.matchSymbol != ELSE && branch.matchSymbol != symbol) {
@@ -229,7 +231,7 @@ void RunMachine(Machine m, int iterations) {
       }
 
       // Set configuration for next iteration
-      m.configuration = branch.nextConfiguration;
+      m->configuration = branch.nextConfiguration;
 
       // Execute all operations in branch until a N
       bool nop = false;
@@ -241,16 +243,19 @@ void RunMachine(Machine m, int iterations) {
             nop = true;
           } break;
           case P: {
-            Print(&m, operation.parameter);
+            Print(m, operation.parameter);
           } break;
           case E: {
-            Erase(&m);
+            Erase(m);
           } break;
           case R: {
-            Right(&m);
+            Right(m);
+            if(m->pointer > topPointerAccessed) {
+                topPointerAccessed = m->pointer;
+            }
           } break;
           case L: {
-            Left(&m);
+            Left(m);
           } break;
         }
 
@@ -263,8 +268,8 @@ void RunMachine(Machine m, int iterations) {
       // for this m-configuration is completed.
       //  This means we can print the tape state
       // and move on to the next m-configuration
-      strcpy(outputBuffer, m.tape);
-      outputBuffer[TAPE_LENGTH] = '\0';
+      strcpy(outputBuffer, m->tape);
+      outputBuffer[topPointerAccessed] = '\0';
       OutputDebugStringA(outputBuffer);
       OutputDebugStringA("\n");
       break;
@@ -288,7 +293,7 @@ int main() {
       "f: none, P0 R, e\n";
 
   Parse(&m, test);
-  RunMachine(m, 100);
+  RunMachine(&m, 10);
 
   return 0;
 }
