@@ -32,7 +32,8 @@ print 0 or 1: none | P0, R | print 0 or 1; else | P1, R | print 1;
 #### Symbols
 The first field contains a _symbol_. When an _m-configuration_ is executed, a _symbol_ is read from memory, and a branch is selected if its symbol corresponds to the one that is read.
 
-In the snippet above, the symbols used were `none` and `else`. These are two special keywords, corresponding to a blank piece of memory and "any symbol" respectively. Other than these, all ascii characters are valid symbols, except for `0` and `ÿ` (which are used internally to represend `none` and `else`).
+_Symbols_ in this case denotes ascii characters and the keywords `none` and `else`. `none` represents a blank piece of memory, and `else` means the branch matches any symbol read. 
+It is worth noting here that `ÿ` (`0xFF`) is not a valid symbol, as it is used to represent `else` internally. Neither can you actually refer to the _space_ symbol in a configuration, but the `none` keyword translates literally to a space (`0x20`), so that is no issue. Other than that, all sensible ascii letters should be usable.
 
 #### Operations
 The next fields contain the operations to perform for the current branch. This can be a series of several operations, separated by commas. The defined operations are:
@@ -71,3 +72,4 @@ This is currently set up for development in Windows, using MSVC, in a partition 
 - Add more examples! I will type out the sqrt(2)/2 example from the book when printing works, so I can verify that it works..
 - Write a Makefile.. I am currently using an archaic and mystical `build.bat` file that i run in Windows cmd, but I can write this. If not just use `cl` or any compiler for c++ you have lying around..
 - Change c library functions to use safe versions.. This is currently a hot memory mess.
+- Emoji support???
