@@ -62,7 +62,6 @@ This is currently set up for development in Windows, using MSVC, in a partition 
 
 ## TODO
 
-- Change printing to only print the part of memory that has been touched so far.
 - Interactive running would be fun. Like manually moving forward in the exeuction, seeing the branch being executed, the tape moving..
 - Uh oh! The tape is a piece of memory. This means that it is very much _not_ infinite in either direction. I will have to see if I can find a reasonable way to move backwards in memory, perhaps allocating more memory dynamically.. We will see.
 - Add more examples! I will type out the sqrt(2)/2 example from the book when printing works, so I can verify that it works..
