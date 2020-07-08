@@ -1,4 +1,4 @@
-# turing - a turing machine virtual machine and interpreter
+# turing
 A turing machine implementation written to run programs from the book _Annotated Turing_.
 
 ## What does it do?
