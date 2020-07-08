@@ -4,6 +4,7 @@
 #include <string.h>
 #include <windows.h>
 
+// #include <fstream>
 #include <iostream>
 
 #define TAPE_LENGTH 128
@@ -269,6 +270,7 @@ void RunMachine(Machine *m, int iterations) {
           } break;
           case R: {
             Right(m);
+
             // Change topPointerAccessed if we have
             // touched a higher pointer.
             // This is for printing purposes.
@@ -306,12 +308,6 @@ void RunMachine(Machine *m, int iterations) {
       std::cout << pointerBuffer << "\n[" << outputBuffer << " ]\n"
                 << std::endl;
 
-      /*
-      OutputDebugStringA(pointerBuffer);
-      OutputDebugStringA("\n[");
-      OutputDebugStringA(outputBuffer);
-      OutputDebugStringA(" ]\n");
-      */
       break;
     }
   }
@@ -320,22 +316,22 @@ void RunMachine(Machine *m, int iterations) {
   OutputDebugStringA("\n");
 }
 
-int main() {
-  char *test =
-      "b: none | P0, R | c\n"
-      "c: none | R     | d\n"
-      "d: none | P1, R | e\n"
-      "e: none | R     | f\n"
-      "f: none | P0, R | e\n";
+int main(int argc, char *argv[]) {
+  char *filename = argv[1];
+  FILE *file = fopen(filename, "rb");
+  fseek(file, 0, SEEK_END);
+  long fsize = ftell(file);
+  fseek(file, 0, SEEK_SET);
 
-  Machine m = Parse(test);
+  char *bytecode = (char *)malloc(fsize + 1);
+  fread(bytecode, fsize, 1, file);
+  fclose(file);
+  bytecode[fsize] = 0; // Add line-terminator
+
+
+  Machine m = Parse(bytecode);
+
   RunMachine(&m, 10);
 
-  return 0;
-}
-
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                     LPSTR lpCmdLine, int nShowCmd) {
-  main();
   return 0;
 }
