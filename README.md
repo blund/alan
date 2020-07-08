@@ -65,7 +65,9 @@ At the moment, programs have to be run from the main function.. I will change th
 ## Setting up
 Simply run `make` to compile the executable. You can then run it with the file to interpret and the number of passes to make, like this:
 ```
-turing example.tur 10
+make
+turing.exe example.tur 10 // on windows
+turing example.tur 10 // on linux/macos
 ```
 Just change the makefile to fit your needs, for instance if you want to use a different compiler.
 
