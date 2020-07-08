@@ -1,6 +1,9 @@
 # turing
 A turing machine implementation written to run programs from the book _Annotated Turing_.
 
+## What does it do?
+The program is an interpreter for a made up syntax for defining _m-configurations_ for a turing machine. It translates these to bytecode, and then executes the bytecode on a very small virtual machine.
+
 ## How do i write programs?
 To ease the process of writing one of these programs, I wrote an interpreter that churns out bytecode(?) that the virtual machine can run. 
 It takes in code formated like this:
@@ -50,8 +53,13 @@ d: none, P1 R, e
 e: none, R, f
 f: none, P0 R, e
 ```
+
+## Running programs
+At the moment, programs have to be run from the main function.. I will change this so that they can be read by the executable and interpreted on the fly.
+
 ## Other info / setting up
 This is currently set up for development in Windows, using MSVC, in a partition `W:` with a folder `build` in the root. Running `shell.bat` will add `cl` to your path. Running `build.bat` will then compile the program. You can just compile it in place, but this is useful for debugging.. I promise.
+
 ## TODO
 
 - Printing is currently.. broken. The "blank" memory is stored as 0. This will probably be fixed by changing it to the ascii value for a space.
