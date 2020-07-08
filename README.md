@@ -59,3 +59,4 @@ This is currently set up for development in Windows, using MSVC, in a partition 
 - Uh oh! The tape is a piece of memory. This means that it is very much _not_ infinite in either direction. I will have to see if I can find a reasonable way to move backwards in memory, perhaps allocating more memory dynamically.. We will see.
 - Add more examples! I will type out the sqrt(2)/2 example from the book when printing works, so I can verify that it works..
 - Write a Makefile.. I am currently using an archaic and mystical `build.bat` file that i run in Windows cmd, but I can write this. If not just use `cl` or any compiler for c++ you have lying around..
+- Update syntax to make readability easier. Using names in spaces looks confusing when operators are also separated by spaces.
