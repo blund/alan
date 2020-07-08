@@ -63,9 +63,9 @@ f: none | P0, R | e
 At the moment, programs have to be run from the main function.. I will change this so that they can be read by the executable and interpreted on the fly.
 
 ## Setting up
-Simply run `make` to compile the executable. You can then run it with `.tur` file following the syntax explained above as an argment, like this:
+Simply run `make` to compile the executable. You can then run it with the file to interpret and the number of passes to make, like this:
 ```
-turing example.tur
+turing example.tur 10
 ```
 Just change the makefile to fit your needs, for instance if you want to use a different compiler.
 
