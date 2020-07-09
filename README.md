@@ -21,14 +21,17 @@ Here is an *m-configuration* from the snippet above, called `print0`, which fitt
 print0: none | P0, R | print1
 ```
 
-Each configuration consists of one or more branches, separated by lines. Each of these branches consists of three fields, sperated by vertical bars `|`, that define it. These contain the _symbol_ the branch reacts to, the _operations_ to perform for the branch and the name of the _next configuration_.
+Each configuration consists of one or more branches, separated by lines. Each of these branches consists of three fields, sperated by vertical bars `|`. These contain the _symbol_ the branch reacts to, the _operations_ to perform for the branch and the name of the _next configuration_.
 
-Also note that it is ok for names to have spaces in them for readability, and configurations can safely be terminated with semicolons for a coherent look.
+A configuration with branches will look like this: 
 
 ```
 print 0 or 1: none | P0, R | print 0 or 1
               else | P1, R | print 1
+              
+print 1: ...
 ```
+Also note that it is ok for names to have spaces in them for readability.
 
 #### Symbols
 The first field contains a _symbol_. When an _m-configuration_ is executed, a _symbol_ is read from memory, and a branch is selected if its symbol corresponds to the one that is read.
