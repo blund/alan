@@ -63,15 +63,12 @@ f: none | P0, R | e
 
 ```
 
-## Running programs
-At the moment, programs have to be run from the main function.. I will change this so that they can be read by the executable and interpreted on the fly.
-
-## Setting up
-Simply run `make` to compile the executable. You can then run it with the file to interpret and the number of passes to make, like this:
+## Setting up and running programs
+Simply run `make` to compile the interpreter. You can then run it with the file to interpret and the number of passes to make, like this:
 ```
 make
 turing.exe example.tur 10 // on windows
-turing example.tur 10 // on linux/macos
+turing example.tur 10     // on linux/macos
 ```
 Just change the makefile to fit your needs, for instance if you want to use a different compiler.
 
