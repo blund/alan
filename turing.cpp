@@ -130,21 +130,8 @@ bool FindInString(char *string, char symbol) {
   return false;
 }
 
-bool StringIsWhitespace(char *string) {
-  char *c;
-  for (c = string; *c != '\0'; c++) {
-    if (*c != ' ' || *c != '\t' || *c != '\t' || *c != '\n') {
-      return false;
-    }
-  }
-  return true;
-}
-
 Machine Parse(char *code) {
   // TODO Hardkodet størrelse
-
-  char codeToParse[265];
-  assert(strcpy_s(codeToParse, sizeof(codeToParse), code) == 0);
 
   Machine m = {};
   for (int i = 0; i < TAPE_LENGTH; i++) {
@@ -160,6 +147,9 @@ Machine Parse(char *code) {
   char branchDelim[] = ";";
   char inBranchDelim[] = "|";
   char operationDelim[] = ",";
+
+  char codeToParse[265];
+  assert(strcpy_s(codeToParse, sizeof(codeToParse), code) == 0);
 
   char *lines[CONFIGURATION_LENGTH] = {};
   int lineCount = splitOn(lines, codeToParse, newline);
@@ -183,21 +173,18 @@ Machine Parse(char *code) {
     // machine struct and change 'c' to refer to it.
     char *lineContext = line;
     if (FindInString(lines[i], ':')) {
-
       // Tokeniser de ulike dele av branchen
       char *name = strtok_s(NULL, configNameDelim, &lineContext);
       name = trim(name);
 
-      int actualIndex = findOrInsert(configNames, name);
-      c = &m.configurations[actualIndex];  // TODO shitty navn
+      int configurationIndex = findOrInsert(configNames, name);
+      c = &m.configurations[configurationIndex];
 
-      branchIndex = 0; // Reset branch index since we are in a new configuration
+      // Reset branch index since we are in a new configuration
+      branchIndex = 0;
     }
-
-    Branch *b = &c->branch[branchIndex++]; // Increment branch index for next pass
-
-    char toParse[265];
-    assert(strcpy_s(toParse, sizeof(toParse), line) == 0);
+    // Increment branch index for next pass
+    Branch *b = &c->branch[branchIndex++];
 
     char *symbol = strtok_s(NULL, inBranchDelim, &lineContext);
     symbol = trim(symbol);
@@ -373,32 +360,26 @@ int IsNumber(char *string) {
 }
 
 int main(int argc, char *argv[]) {
-#if 0
-    int timesToRun = -1;
-    char *filename = 0;
-    char tmp[] = "test";
+  int timesToRun = -1;
+  char *filename = 0;
 
-    for (int i = 1; i < argc; ++i) {
-        if (IsNumber(argv[i])) {
-            char *endPtr;
-            timesToRun = strtol(argv[i], &endPtr, 10);
-        } else if (!filename) {
-            filename = argv[i];
-        }
+  for (int i = 1; i < argc; ++i) {
+    if (IsNumber(argv[i])) {
+      char *endPtr;
+      timesToRun = strtol(argv[i], &endPtr, 10);
+    } else if (!filename) {
+      filename = argv[i];
     }
+  }
 
-    if (filename == 0) {
-        std::cout << "Error: no filename specified" << std::endl;
-        return 1;
-    }
-    if (timesToRun == -1) {
-        std::cout << "Error: please specify number of passes to make" << std::endl;
-        return 1;
-    }
-#else
-  char filename[] = "test.tur";
-  int timesToRun = 8;
-#endif
+  if (filename == 0) {
+    std::cout << "Error: no filename specified" << std::endl;
+    return 1;
+  }
+  if (timesToRun == -1) {
+    std::cout << "Error: please specify number of passes to make" << std::endl;
+    return 1;
+  }
 
   char *bytecode = ReadSource(filename);
   Machine m = Parse(bytecode);
