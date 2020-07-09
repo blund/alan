@@ -1,10 +1,11 @@
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-#include <cassert>
-#include <iostream>
+#include <assert.h>
 
 #define TAPE_LENGTH 128
 #define MAX_BRANCH_COUNT 8
@@ -15,31 +16,37 @@
 #define COMMENT_CHAR '!'
 #define CONFIGURATION_COUNT 32
 #define CONFIGURATION_LENGTH 32
+#define true 1
+#define false 0
 
-enum Op { N = 0, P, E, R, L };
+typedef enum Op { N = 0, P, E, R, L } Op;
 
-struct Operation {
+typedef int bool;
+
+typedef struct Operation {
   Op op;
   uint8_t parameter;
-};
+} Operation;
 
-struct Branch {
+typedef struct Branch {
+  char *values;
   int matchSymbol;
   int nextConfiguration;
   Operation operations[MAX_OPERATION_COUNT];
-};
+} Branch;
 
-struct Configuration {
+typedef struct Configuration {
+  char *name;
   Branch branch[MAX_BRANCH_COUNT];
-};
+} Configuration;
 
-struct Machine {
+typedef struct Machine {
   int pointer;
   char tape[TAPE_LENGTH];
 
   int configuration;
   Configuration configurations[MAX_CONF];
-};
+} Machine;
 
 char *trim(char *str) {
   // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -131,14 +138,12 @@ bool FindInString(char *string, char symbol) {
 }
 
 Machine Parse(char *code) {
-  // TODO Hardkodet størrelse
-
-  Machine m = {};
+  Machine m = {0};
   for (int i = 0; i < TAPE_LENGTH; i++) {
     m.tape[i] = ' ';
   }
 
-  char configNames[CONFIGURATION_COUNT][CONFIGURATION_LENGTH] = {};
+  char configNames[CONFIGURATION_COUNT][CONFIGURATION_LENGTH] = {0};
 
   // Definer delimitere
   char newline[] = "\n";
@@ -151,7 +156,7 @@ Machine Parse(char *code) {
   char codeToParse[265];
   assert(strcpy_s(codeToParse, sizeof(codeToParse), code) == 0);
 
-  char *lines[CONFIGURATION_LENGTH] = {};
+  char *lines[CONFIGURATION_LENGTH] = {0};
   int lineCount = splitOn(lines, codeToParse, newline);
 
   Configuration *c;
@@ -202,7 +207,7 @@ Machine Parse(char *code) {
       b->matchSymbol = (uint8_t)*symbol;
     }
 
-    char *ops[MAX_OPERATION_COUNT] = {};
+    char *ops[MAX_OPERATION_COUNT] = {0};
     int opCount = splitOn(ops, opsString, operationDelim);
 
     for (int i = 0; i < opCount; ++i) {
@@ -243,24 +248,37 @@ inline void Right(Machine *m) { ++m->pointer; }
 // TODO Assert m->pointer != 0;
 inline void Left(Machine *m) { --m->pointer; }
 
-void RunMachine(Machine *m, int iterations) {
-  char outputBuffer[2 * TAPE_LENGTH];  // Buffer used for printing
-  char pointerBuffer[TAPE_LENGTH +
-                     1];  // Buffer used for displaying where the pointer is
-  int topPointerAccessed = 0;  // Value used for determining how much to print
+void PrintMachine(Machine *m, int topPointerAccessed) {
 
-  // Print initial condition before beginning the iteration
-  for (int i = 0; i < TAPE_LENGTH; i++) {
-    pointerBuffer[i] = ' ';
-  }
-  pointerBuffer[m->pointer + 1] = 'v';
-  pointerBuffer[m->pointer + 2] = '\0';
-  assert(strcpy_s(outputBuffer, sizeof(outputBuffer), m->tape) == 0);
-  outputBuffer[topPointerAccessed] = '\0';
-  std::cout << pointerBuffer << "\n[" << outputBuffer << " ]\n" << std::endl;
+      char outputBuffer[TAPE_LENGTH + 2];  // Buffer used for printing
+      char pointerBuffer[TAPE_LENGTH + 2];
+
+      for (int i = 0; i < topPointerAccessed; i++) {
+        pointerBuffer[i] = ' ';
+      }
+
+      // On the first pass the pointer will be set to 0, but
+      // we want it to point on a blank space in the tape
+      int pointer = (m->pointer == 0) ? 1 : m->pointer;
+
+      pointerBuffer[pointer] = 'v';
+      pointerBuffer[pointer+1] = '\0';
+
+      assert(strcpy_s(outputBuffer, sizeof(outputBuffer), m->tape) == 0);
+      outputBuffer[topPointerAccessed] = '\0';
+
+      printf("%s\n[%s]\n", pointerBuffer, outputBuffer);
+}
+
+
+void RunMachine(Machine *m, int iterations) {
+  int topPointerAccessed = 1;  // Value used for determining how much to print
+  PrintMachine(m, topPointerAccessed);
+  //std::cout << pointerBuffer << "\n[" << outputBuffer << " ]\n" << std::endl;
 
   while (iterations-- > 0) {
-    // TODO Assert at pointer er innenfor TAPE_LENGTH
+    assert(m->pointer <= TAPE_LENGTH);
+
     Configuration c = m->configurations[m->configuration];
     for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; ++branchIndex) {
       char symbol = m->tape[m->pointer];
@@ -313,27 +331,15 @@ void RunMachine(Machine *m, int iterations) {
       //  This means we can print the tape state
       // and move on to the next m-configuration
 
-      // TODO change this to only copy touched parts of memory
-      // Copy memory to a temporary buffer,
-      // then add a string terminator at the index
-      // after the highest pointer accessed, to only
-      // print that.
-      for (int i = 0; i < TAPE_LENGTH; i++) {
-        pointerBuffer[i] = ' ';
-      }
-      pointerBuffer[m->pointer + 1] = 'v';
-      pointerBuffer[m->pointer + 2] = '\0';
-      assert(strcpy_s(outputBuffer, sizeof(outputBuffer), m->tape) == 0);
-      outputBuffer[topPointerAccessed] = '\0';
-      std::cout << pointerBuffer << "\n[" << outputBuffer << " ]\n"
-                << std::endl;
-
+      PrintMachine(m, topPointerAccessed);
       break;
     }
   }
 }
 
 char *ReadSource(char *filename) {
+
+  // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
   FILE *file;
   fopen_s(&file, filename,
           "rb");  // TODO Might be problematic outside of windows
@@ -373,11 +379,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (filename == 0) {
-    std::cout << "Error: no filename specified" << std::endl;
+    printf("%s\n", "Error: no filename specified");
     return 1;
   }
   if (timesToRun == -1) {
-    std::cout << "Error: please specify number of passes to make" << std::endl;
+    printf("%s\n", "Error: please specify number of passes to make");
     return 1;
   }
 

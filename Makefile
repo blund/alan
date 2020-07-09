@@ -4,8 +4,8 @@ else
  	target = turing
 endif
 
-$(target): turing.cpp
-	clang++ -o $(target) turing.cpp
+$(target): turing.c
+	clang -o $(target) turing.c
 
 clean:
 	rm -f turing.o
