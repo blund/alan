@@ -71,12 +71,3 @@ turing.exe example.tur 10 // on windows
 turing example.tur 10     // on linux/macos
 ```
 Just change the makefile to fit your needs, for instance if you want to use a different compiler.
-
-
-## TODO
-- Test compiling and running on linux to ensure everything works as intended.
-- Set up some tests to verify that things work as intended.
-- More examples! I add the sqrt(2)/2 example from the book, perhaps add a folder just for examples.
-- Interactive running would be fun. Like manually moving forward in the exeuction, seeing the branch being executed, the tape moving..
-- Uh oh! The tape is a piece of memory. This means that it is very much _not_ infinite in either direction. I will have to see if I can find a reasonable way to move backwards in memory, perhaps allocating more memory dynamically.. We will see.
-- Emoji support???
