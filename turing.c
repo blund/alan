@@ -1,10 +1,8 @@
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
 #include <assert.h>
 
 #define TAPE_LENGTH 128
@@ -25,7 +23,8 @@ typedef int bool;
 
 typedef struct Operation {
   Op op;
-  uint8_t parameter;
+  char parameter;
+
 } Operation;
 
 typedef struct Branch {
@@ -33,11 +32,13 @@ typedef struct Branch {
   int matchSymbol;
   int nextConfiguration;
   Operation operations[MAX_OPERATION_COUNT];
+
 } Branch;
 
 typedef struct Configuration {
   char *name;
   Branch branch[MAX_BRANCH_COUNT];
+
 } Configuration;
 
 typedef struct Machine {
@@ -46,9 +47,11 @@ typedef struct Machine {
 
   int configuration;
   Configuration configurations[MAX_CONF];
+
 } Machine;
 
 char *trim(char *str) {
+  // TODO Write a simpler version of this
   // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
   size_t len = 0;
   char *frontp = str;
@@ -95,18 +98,19 @@ char *trim(char *str) {
   return str;
 }
 
-// uint8_t findOrInsert(char *(*strArray), char *str) {
 int findOrInsert(char strArray[][CONFIGURATION_COUNT], char *str) {
-  // TODO Hardkodet størrelse på array
   for (int index = 0; index < CONFIGURATION_COUNT; index++) {
     if (strArray[index][0] == 0) {
+
       // We have found an empty spot,
-      // meaning we have not found our identifier
-      // and can safely put it here
+      // which means the identifier is not in the list,
+      // so we put it here
       assert(strcpy_s(strArray[index], sizeof(strArray[index]), str) == 0);
       return index;
+
     } else if (strcmp(strArray[index], str) == 0) {
-      // identifier already exists, return index
+
+      // The identifier already exists, so we return its return index
       return index;
     }
     continue;
@@ -235,18 +239,21 @@ Machine Parse(char *code) {
 }
 
 // The operations the machine can perform on the tape.
-// TODO Assert m->tape[m->pointer] != (0 || 1)
 inline void Print(Machine *m, char sym) { m->tape[m->pointer] = sym; }
 
 inline void Erase(Machine *m) { m->tape[m->pointer] = 0; }
 
 inline char Read(Machine *m) { return m->tape[m->pointer]; }
 
-// TODO Assert m->pointer != TAPE_LENGTH;
-inline void Right(Machine *m) { ++m->pointer; }
+inline void Right(Machine *m) {
+    assert(m->pointer != TAPE_LENGTH);
+    ++m->pointer;
+}
 
-// TODO Assert m->pointer != 0;
-inline void Left(Machine *m) { --m->pointer; }
+inline void Left(Machine *m) {
+    assert(m->pointer != 0);
+    --m->pointer;
+}
 
 void PrintMachine(Machine *m, int topPointerAccessed) {
 
@@ -284,6 +291,10 @@ void RunMachine(Machine *m, int iterations) {
       char symbol = m->tape[m->pointer];
       Branch branch = c.branch[branchIndex];
 
+      // Here we are checking whether or not we are in the correct branch
+      // if we are not, we will go on to the next iteration.
+      // If we are, we will execute the branch and move on to the next
+      // configuration
       if (branch.matchSymbol != ELSE && branch.matchSymbol != symbol) {
         continue;
       }
@@ -320,17 +331,10 @@ void RunMachine(Machine *m, int iterations) {
             Left(m);
           } break;
         }
-
         if (nop) {
           break;
         }
       }
-
-      //  Since we have found the correct branch, computaion
-      // for this m-configuration is completed.
-      //  This means we can print the tape state
-      // and move on to the next m-configuration
-
       PrintMachine(m, topPointerAccessed);
       break;
     }
@@ -382,6 +386,7 @@ int main(int argc, char *argv[]) {
     printf("%s\n", "Error: no filename specified");
     return 1;
   }
+
   if (timesToRun == -1) {
     printf("%s\n", "Error: please specify number of passes to make");
     return 1;
