@@ -8,8 +8,17 @@ This project defines a language for defining _m-configurations_ to be executed b
 Simply run `make` to compile the interpreter. You can then run it with the file to interpret and the number of passes to make, like this:
 ```
 make
-turing.exe example.tur 10 // on windows
-turing example.tur 10     // on linux/macos
+// turing.exe examplel\example.tur 3 (on windows)
+turing example/example.tur 3     // on linux/macos
+
+ v
+[ ]
+ v
+[0]
+  v
+[0 ]
+   v
+[0 1]
 ```
 Just change the makefile to fit your needs, for instance if you want to use a different compiler.
 
