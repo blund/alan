@@ -1,11 +1,11 @@
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
- 	target = turing.exe
+ 	target = alan.exe
 else
- 	target = turing
+ 	target = alan
 endif
 
-$(target): turing.c
-	clang -o $(target) turing.c
+$(target): alan.c
+	clang -o $(target) alan.c
 
 clean:
 	rm -f turing.o
