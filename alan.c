@@ -25,7 +25,7 @@ typedef struct Operation {
 } Operation;
 
 typedef struct Branch {
-    char *values;
+    char info[32];
     int matchSymbol;
     int nextConfiguration;
     Operation operations[MAX_OPERATION_COUNT];
@@ -33,7 +33,7 @@ typedef struct Branch {
 } Branch;
 
 typedef struct Configuration {
-    char *name;
+    char name[32];
     Branch branch[MAX_BRANCH_COUNT];
 
 } Configuration;
@@ -186,18 +186,30 @@ Machine Parse(char *code) {
             int configurationIndex = findOrInsert(configNames, name);
             c = &m.configurations[configurationIndex];
 
+            assert(strcpy_s(c->name, sizeof(c->name), name) == 0 );
+
+
             // Reset branch index since we are in a new configuration
             branchIndex = 0;
         }
         // Increment branch index for next pass
         Branch *b = &c->branch[branchIndex++];
 
-        char *symbol = strtok_s(NULL, inBranchDelim, &lineContext);
+        // At this point, what is left in lineContext is
+        // the information of the branch on the line
+        char *branchInfo = lineContext;
+
+        // Copy the branch information into the branch, for
+        // printing purposes.
+        strcpy_s(b->info, sizeof(b->info), branchInfo);
+
+        char *symbol = strtok_s(branchInfo, inBranchDelim, &lineContext);
         symbol = trim(symbol);
         char *opsString = strtok_s(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
         char *next = strtok_s(NULL, inBranchDelim, &lineContext);
         next = trim(next);
+
 
         // Avgjør hva match-symbol skal vare, ta hensyn til definerte variabler
         if (strcmp(symbol, "none") == 0) {
@@ -252,7 +264,7 @@ inline void Left(Machine *m) {
     --m->pointer;
 }
 
-void PrintMachine(Machine *m, int topPointerAccessed) {
+void PrintMachine(Machine *m, Branch *b, int topPointerAccessed) {
 
     char outputBuffer[TAPE_LENGTH + 2];  // Buffer used for printing
     char pointerBuffer[TAPE_LENGTH + 2];
@@ -271,13 +283,15 @@ void PrintMachine(Machine *m, int topPointerAccessed) {
     assert(strcpy_s(outputBuffer, sizeof(outputBuffer), m->tape) == 0);
     outputBuffer[topPointerAccessed] = '\0';
 
-    printf("%s\n[%s]\n", pointerBuffer, outputBuffer);
+    Configuration *c = &m->configurations[m->configuration];
+
+    printf("%s - %s:%s\n[%s]\n\n", pointerBuffer, c->name, b->info, outputBuffer);
 }
 
 
 void RunMachine(Machine *m, int iterations) {
     int topPointerAccessed = 1;  // Value used for determining how much to print
-    PrintMachine(m, topPointerAccessed);
+    //PrintMachine(m, topPointerAccessed);
     //std::cout << pointerBuffer << "\n[" << outputBuffer << " ]\n" << std::endl;
 
     while (iterations-- > 0) {
@@ -297,7 +311,6 @@ void RunMachine(Machine *m, int iterations) {
             }
 
             // Set configuration for next iteration
-            m->configuration = branch.nextConfiguration;
 
             // Execute all operations in branch until a N
             bool nop = false;
@@ -332,7 +345,8 @@ void RunMachine(Machine *m, int iterations) {
                     break;
                 }
             }
-            PrintMachine(m, topPointerAccessed);
+            PrintMachine(m, &branch, topPointerAccessed);
+            m->configuration = branch.nextConfiguration;
             break;
         }
     }
