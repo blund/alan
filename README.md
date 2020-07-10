@@ -1,8 +1,39 @@
-# turing
-A turing machine implementation written to run programs from the book _Annotated Turing_.
+# alan
+A language and interpreter for running turing machines. Inspired by the book _Annotated Turing_.
 
 ## What does it do?
-The program is an interpreter for _m-configurations_ to be executed by a turing machine. It translates these to bytecode, and then executes the bytecode on a small virtual machine.
+This project defines a language for defining _m-configurations_ to be executed by a turing machine. It also contains an interpreter for said language, that shows the progress and result of the execution.
+
+## Setting up and running programs
+Simply run `make` to compile the interpreter. You can then run it with the file to interpret and the number of passes to make, like this:
+```
+make
+// turing.exe examplel\example.tur 3 (on windows)
+turing example/example.tur 3     // on linux/macos
+
+ v
+[ ]
+ v
+[0]
+  v
+[0 ]
+   v
+[0 1]
+```
+Just change the makefile to fit your needs, for instance if you want to use a different compiler.
+
+### Example
+The following is a simple example from _Annotated Turing_, which produces the decimals in binary for the fraction 1/4.
+```
+b: none | P0, R | c
+c: none | R     | d
+d: none | P1, R | e
+e: none | R     | f
+f: none | P0, R | e
+
+```
+
+
 
 ## How do I write programs?
 To ease the process of writing one of these programs, I wrote an interpreter that churns out bytecode(?) that the virtual machine can run.
@@ -52,22 +83,4 @@ The next fields contain the operations to perform for the current branch. This c
 #### Next
 The final value is the name of the next *m-configuration* to move to.
 
-### Example
-The following is a simple example from _Annotated Turing_, which produces the decimals in binary for the fraction 1/4.
-```
-b: none | P0, R | c
-c: none | R     | d
-d: none | P1, R | e
-e: none | R     | f
-f: none | P0, R | e
 
-```
-
-## Setting up and running programs
-Simply run `make` to compile the interpreter. You can then run it with the file to interpret and the number of passes to make, like this:
-```
-make
-turing.exe example.tur 10 // on windows
-turing example.tur 10     // on linux/macos
-```
-Just change the makefile to fit your needs, for instance if you want to use a different compiler.
