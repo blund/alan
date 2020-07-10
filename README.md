@@ -1,4 +1,4 @@
-# turing
+# alan
 A language and interpreter for running turing machines. Inspired by the book _Annotated Turing_.
 
 ## What does it do?
