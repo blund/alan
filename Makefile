@@ -5,7 +5,7 @@ else
 endif
 
 $(target): alan.c
-	clang -o $(target) alan.c
+	clang -o $(target) alan.c -lm
 
 clean:
 	rm -f turing.o
