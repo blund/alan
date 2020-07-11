@@ -12,14 +12,14 @@
 #include <assert.h>
 #include <math.h>
 
-#define TAPE_LENGTH 512
-#define MAX_BRANCH_COUNT 32
+#define TAPE_LENGTH 128
+#define MAX_BRANCH_COUNT 8
 #define MAX_OPERATION_COUNT 32
-#define MAX_CONF 32
+#define MAX_CONF 8
 #define NONE ' '
 #define ELSE 0xff
 #define COMMENT_CHAR '!'
-#define CONFIGURATION_COUNT 64
+#define CONFIGURATION_COUNT MAX_CONF
 #define CONFIGURATION_LENGTH 64
 
 typedef enum Op { N = 0, P, E, R, L } Op;
@@ -153,7 +153,7 @@ char *trim(char *str) {
     return str;
 }
 
-int findOrInsert(char strArray[CONFIGURATION_LENGTH][CONFIGURATION_COUNT], char *str) {
+int findOrInsert(char strArray[CONFIGURATION_COUNT][CONFIGURATION_LENGTH], char *str) {
     for (int index = 0; index < CONFIGURATION_COUNT; index++) {
         if (strArray[index][0] == 0) {
 
@@ -293,7 +293,7 @@ Machine Parse(char *code) {
         } else if (strcmp(symbol, "else") == 0) {
             b->matchSymbol = ELSE;
         } else {
-            b->matchSymbol = (uint8_t)*symbol;
+            b->matchSymbol = *symbol;
         }
 
         char *ops[MAX_OPERATION_COUNT] = {0};
@@ -354,28 +354,29 @@ void Left(Machine *m, int count) {
     assert(m->pointer != 0);
     // TODO fix den under
     // assert(count > 0 && (TAPE_LENGTH - m->pointer) > count);
-    m->pointer += count;
+    m->pointer -= count;
 }
 
 void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
 
-    char outputBuffer[TAPE_LENGTH + 2];  // Buffer used for printing
-    char pointerBuffer[TAPE_LENGTH + 2];
+    char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
+    char pointerBuffer[TAPE_LENGTH];
 
-    for (int i = 0; i < topPointerAccessed; i++) {
+    int pointer = (m->pointer == 0) ? 1 : m->pointer;
+
+    for (int i = 0; i <= pointer ; i++) {
         pointerBuffer[i] = ' ';
     }
 
     // On the first pass the pointer will be set to 0, but
     // we want it to point on a blank space in the tape
-    int pointer = (m->pointer == 0) ? 1 : m->pointer;
 
-    pointerBuffer[pointer] = 'v';
-    pointerBuffer[pointer+1] = '\0';
+    pointerBuffer[pointer + 1] = 'v';
+    pointerBuffer[pointer + 2] = '\0';
 
     // TODO test for bad size
     strcpy(outputBuffer,  m->tape);
-    outputBuffer[topPointerAccessed] = '\0';
+    outputBuffer[topPointerAccessed + 1] = '\0';
 
     if(printInfo) {
         Configuration *c = &m->configurations[m->configuration];
@@ -395,7 +396,7 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
         assert(m->pointer <= TAPE_LENGTH);
 
         Configuration c = m->configurations[m->configuration];
-        for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; ++branchIndex) {
+        for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; branchIndex++) {
             char symbol = m->tape[m->pointer];
             Branch branch = c.branch[branchIndex];
 
@@ -408,7 +409,6 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
             }
             // For printing purposes
             m->branch = branchIndex;
-
 
             // Execute all operations in branch until a N
             bool nop = false;
