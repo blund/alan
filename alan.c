@@ -479,11 +479,17 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
 int main(int argc, char *argv[]) {
     int timesToRun = -1;
     char *filename = 0;
+    bool verbose = false;
 
     for (int i = 1; i < argc; ++i) {
         if (IsNumber(argv[i])) {
             char *endPtr;
             timesToRun = strtol(argv[i], &endPtr, 10);
+        } else if (*argv[i] == '-') {
+            if (*(argv[i] + 1) == 'v') {
+            verbose = true;
+            }
+
         } else if (!filename) {
             filename = argv[i];
         }
@@ -504,7 +510,7 @@ int main(int argc, char *argv[]) {
 
     char *bytecode = ReadSource(filename);
     Machine m = Parse(bytecode);
-    RunMachine(&m, timesToRun, result, true);
+    RunMachine(&m, timesToRun, result, verbose);
 
     char stringResult[256];
     ParseBinaryString(stringResult, result);
