@@ -391,7 +391,7 @@ void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
         Configuration *c = &m->configurations[m->configuration];
         Branch *b = &c->branch[m->branch];
 
-        printf("%s - %s:%s\n[%s]\n\n", pointerBuffer, c->name, b->info, outputBuffer);
+        printf("> %s:%s\n%s\n[%s]\n\n\n", c->name, b->info, pointerBuffer, outputBuffer);
     } else {
         printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
     }
