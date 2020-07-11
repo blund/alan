@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/57915149/using-c11-standard-with-clang-for-use-of-strcpy-s
+
+https://stackoverflow.com/questions/47867130/stdc-lib-ext1-availability-in-gcc-and-clang/50921096#50921096
+

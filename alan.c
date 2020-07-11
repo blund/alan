@@ -1,3 +1,8 @@
+#define _CRT_SECURE_NO_WARNINGS 1
+#if defined(_MSC_VER) // Check if we are using a windows compiler
+#define strtok_r strtok_s
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -52,8 +57,7 @@ typedef struct Machine {
 char *ReadSource(char *filename) {
 
     // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
-    FILE *file;
-    fopen_s(&file, filename,
+    FILE *file = fopen(filename,
             "rb");  // TODO Might be problematic outside of windows
     fseek(file, 0, SEEK_END);
     long fsize = ftell(file);
@@ -74,7 +78,7 @@ float ParseBinaryPointValue(char *numstring) {
 
     while(*c != '\0') {
         float i = (float)(*c++-48);
-        sum += i * 1/pow(2, n);
+        sum += i * 1.0f/powf(2.0f, n);
         n *= 2;
     }
 
@@ -156,7 +160,8 @@ int findOrInsert(char strArray[CONFIGURATION_LENGTH][CONFIGURATION_COUNT], char 
             // We have found an empty spot,
             // which means the identifier is not in the list,
             // so we put it here
-            assert(strcpy_s(strArray[index], sizeof(strArray[index]), str) == 0);
+            // TODO handle bas size
+            strcpy(strArray[index], str);
             return index;
 
         } else if (strcmp(strArray[index], str) == 0) {
@@ -174,10 +179,10 @@ int splitOn(char *slots[], char *text, char *delimiter) {
     char *context;
 
     int index = 0;
-    char *unit = strtok_s(text, delimiter, &context);
+    char *unit = strtok_r(text, delimiter, &context);
     while (unit != NULL) {
         slots[index++] = unit;
-        unit = strtok_s(NULL, delimiter, &context);
+        unit = strtok_r(NULL, delimiter, &context);
     }
     return index;
 }
@@ -221,7 +226,8 @@ Machine Parse(char *code) {
     char operationDelim[] = ",";
 
     char codeToParse[2048];
-    assert(strcpy_s(codeToParse, sizeof(codeToParse), code) == 0);
+    // TODO test for bad size
+    strcpy(codeToParse, code);
 
     char *lines[CONFIGURATION_LENGTH] = {0};
     int lineCount = splitOn(lines, codeToParse, newline);
@@ -230,7 +236,8 @@ Machine Parse(char *code) {
     int branchIndex = 0;
     for (int i = 0; i < lineCount; ++i) {
         char line[256];
-        assert(strcpy_s(line, sizeof(line), lines[i]) == 0);
+        // TODO test for bad size
+        strcpy(line, lines[i]);
 
         // Skip the line if it is a comment
         if (*line == COMMENT_CHAR) {
@@ -246,13 +253,15 @@ Machine Parse(char *code) {
         char *lineContext = line;
         if (FindInString(lines[i], ':')) {
             // Tokeniser de ulike dele av branchen
-            char *name = strtok_s(NULL, configNameDelim, &lineContext);
+        // TODO test for bad size
+            char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
 
             int configurationIndex = findOrInsert(configNames, name);
             c = &m.configurations[configurationIndex];
 
-            assert(strcpy_s(c->name, sizeof(c->name), name) == 0 );
+            // TODO test for bad size
+            strcpy(c->name, name);
 
 
             // Reset branch index since we are in a new configuration
@@ -267,13 +276,14 @@ Machine Parse(char *code) {
 
         // Copy the branch information into the branch, for
         // printing purposes..
-        strcpy_s(b->info, sizeof(b->info), lineContext);
+        // TODO test for bad size
+        strcpy(b->info, lineContext);
 
-        char *symbol = strtok_s(NULL, inBranchDelim, &lineContext);
+        char *symbol = strtok_r(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
-        char *opsString = strtok_s(NULL, inBranchDelim, &lineContext);
+        char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
-        char *next = strtok_s(NULL, inBranchDelim, &lineContext);
+        char *next = strtok_r(NULL, inBranchDelim, &lineContext);
         next = trim(next);
 
 
@@ -328,19 +338,19 @@ Machine Parse(char *code) {
 }
 
 // The operations the machine can perform on the tape.
-inline void Print(Machine *m, char sym) { m->tape[m->pointer] = sym; }
+void Print(Machine *m, char sym) { m->tape[m->pointer] = sym; }
 
-inline void Erase(Machine *m) { m->tape[m->pointer] = 0; }
+void Erase(Machine *m) { m->tape[m->pointer] = 0; }
 
-inline char Read(Machine *m) { return m->tape[m->pointer]; }
+char Read(Machine *m) { return m->tape[m->pointer]; }
 
-inline void Right(Machine *m, int count) {
+void Right(Machine *m, int count) {
     assert(m->pointer != TAPE_LENGTH);
     assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
     m->pointer += count;
 }
 
-inline void Left(Machine *m, int count) {
+void Left(Machine *m, int count) {
     assert(m->pointer != 0);
     // TODO fix den under
     // assert(count > 0 && (TAPE_LENGTH - m->pointer) > count);
@@ -363,7 +373,8 @@ void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
     pointerBuffer[pointer] = 'v';
     pointerBuffer[pointer+1] = '\0';
 
-    assert(strcpy_s(outputBuffer, sizeof(outputBuffer), m->tape) == 0);
+    // TODO test for bad size
+    strcpy(outputBuffer,  m->tape);
     outputBuffer[topPointerAccessed] = '\0';
 
     if(printInfo) {
