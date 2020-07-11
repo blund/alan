@@ -78,7 +78,7 @@ float ParseBinaryPointValue(char *numstring) {
 
     while(*c != '\0') {
         float i = (float)(*c++-48);
-        sum += i * 1/pow(2, n);
+        sum += i * 1.0f/powf(2.0f, n);
         n *= 2;
     }
 
@@ -338,19 +338,19 @@ Machine Parse(char *code) {
 }
 
 // The operations the machine can perform on the tape.
-inline void Print(Machine *m, char sym) { m->tape[m->pointer] = sym; }
+void Print(Machine *m, char sym) { m->tape[m->pointer] = sym; }
 
-inline void Erase(Machine *m) { m->tape[m->pointer] = 0; }
+void Erase(Machine *m) { m->tape[m->pointer] = 0; }
 
-inline char Read(Machine *m) { return m->tape[m->pointer]; }
+char Read(Machine *m) { return m->tape[m->pointer]; }
 
-inline void Right(Machine *m, int count) {
+void Right(Machine *m, int count) {
     assert(m->pointer != TAPE_LENGTH);
     assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
     m->pointer += count;
 }
 
-inline void Left(Machine *m, int count) {
+void Left(Machine *m, int count) {
     assert(m->pointer != 0);
     // TODO fix den under
     // assert(count > 0 && (TAPE_LENGTH - m->pointer) > count);
