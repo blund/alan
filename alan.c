@@ -506,15 +506,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
-
-/*
-   char *floatTest = "0100";
-   float floatResult = ParseBinaryPointValue(floatTest);
-   printf("%f\n", floatResult);
-
-   char *stringTest = "0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100";
-   char stringResult[256];
-   ParseBinaryString(stringResult, stringTest);
-   printf("%s\n", stringResult);
-   */
