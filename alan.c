@@ -5,16 +5,17 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <math.h>
 
-#define TAPE_LENGTH 128
-#define MAX_BRANCH_COUNT 8
-#define MAX_OPERATION_COUNT 8
-#define MAX_CONF 8
+#define TAPE_LENGTH 512
+#define MAX_BRANCH_COUNT 32
+#define MAX_OPERATION_COUNT 32
+#define MAX_CONF 32
 #define NONE ' '
 #define ELSE 0xff
 #define COMMENT_CHAR '!'
-#define CONFIGURATION_COUNT 32
-#define CONFIGURATION_LENGTH 32
+#define CONFIGURATION_COUNT 64
+#define CONFIGURATION_LENGTH 64
 
 typedef enum Op { N = 0, P, E, R, L } Op;
 
@@ -25,7 +26,7 @@ typedef struct Operation {
 } Operation;
 
 typedef struct Branch {
-    char info[32];
+    char info[256];
     int matchSymbol;
     int nextConfiguration;
     Operation operations[MAX_OPERATION_COUNT];
@@ -33,7 +34,7 @@ typedef struct Branch {
 } Branch;
 
 typedef struct Configuration {
-    char name[32];
+    char name[256];
     Branch branch[MAX_BRANCH_COUNT];
 
 } Configuration;
@@ -43,10 +44,63 @@ typedef struct Machine {
     char tape[TAPE_LENGTH];
 
     int configuration;
+    int branch;
     Configuration configurations[MAX_CONF];
 
 } Machine;
 
+char *ReadSource(char *filename) {
+
+    // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
+    FILE *file;
+    fopen_s(&file, filename,
+            "rb");  // TODO Might be problematic outside of windows
+    fseek(file, 0, SEEK_END);
+    long fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *bytecode = (char *)malloc(fsize + 1);
+    fread(bytecode, fsize, 1, file);
+    fclose(file);
+    bytecode[fsize] = 0;  // Add line-terminator
+
+    return bytecode;
+}
+
+float ParseBinaryPointValue(char *numstring) {
+    float sum;
+    char *c = numstring;
+    float n = 1;
+
+    while(*c != '\0') {
+        float i = (float)(*c++-48);
+        sum += i * 1/pow(2, n);
+        n *= 2;
+    }
+
+    return sum;
+}
+
+char *ParseBinaryString(char *result, char *binary) {
+    char *c = binary;
+    int resultIndex = 0;
+    while(*c != 0) {
+        int n = 128;
+        char sum = 0;
+        for(int i = 0; i < 8; i++) {
+            if(*c == 0) {
+                break;
+            }
+            if(*c == '1') {
+                sum += n * 1;
+            }
+            n /= 2;
+            c++;
+        }
+        result[resultIndex++] = sum;
+    }
+    return result;
+}
 char *trim(char *str) {
     // TODO Write a simpler version of this
     // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -95,7 +149,7 @@ char *trim(char *str) {
     return str;
 }
 
-int findOrInsert(char strArray[][CONFIGURATION_COUNT], char *str) {
+int findOrInsert(char strArray[CONFIGURATION_LENGTH][CONFIGURATION_COUNT], char *str) {
     for (int index = 0; index < CONFIGURATION_COUNT; index++) {
         if (strArray[index][0] == 0) {
 
@@ -138,6 +192,18 @@ bool FindInString(char *string, char symbol) {
     return false;
 }
 
+
+
+int IsNumber(char *string) {
+    char *c;
+    for (c = string; *c != '\0'; c++) {
+        if (!isdigit((int)*c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Machine Parse(char *code) {
     Machine m = {0};
     for (int i = 0; i < TAPE_LENGTH; i++) {
@@ -154,7 +220,7 @@ Machine Parse(char *code) {
     char inBranchDelim[] = "|";
     char operationDelim[] = ",";
 
-    char codeToParse[265];
+    char codeToParse[2048];
     assert(strcpy_s(codeToParse, sizeof(codeToParse), code) == 0);
 
     char *lines[CONFIGURATION_LENGTH] = {0};
@@ -163,7 +229,7 @@ Machine Parse(char *code) {
     Configuration *c;
     int branchIndex = 0;
     for (int i = 0; i < lineCount; ++i) {
-        char line[128];
+        char line[256];
         assert(strcpy_s(line, sizeof(line), lines[i]) == 0);
 
         // Skip the line if it is a comment
@@ -197,13 +263,13 @@ Machine Parse(char *code) {
 
         // At this point, what is left in lineContext is
         // the information of the branch on the line
-        char *branchInfo = lineContext;
+        //char *branchInfo = lineContext;
 
         // Copy the branch information into the branch, for
-        // printing purposes.
-        strcpy_s(b->info, sizeof(b->info), branchInfo);
+        // printing purposes..
+        strcpy_s(b->info, sizeof(b->info), lineContext);
 
-        char *symbol = strtok_s(branchInfo, inBranchDelim, &lineContext);
+        char *symbol = strtok_s(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
         char *opsString = strtok_s(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
@@ -234,8 +300,22 @@ Machine Parse(char *code) {
                 b->operations[i].op = E;
             } else if (*op == 'R') {
                 b->operations[i].op = R;
+                // TODO assert that param is a number
+                char param = *(op + 1);
+                if (param == ',' || param == 0) {
+                    b->operations[i].parameter = 1;
+                } else {
+                    b->operations[i].parameter = param - 48;
+                }
             } else if (*op == 'L') {
                 b->operations[i].op = L;
+                // TODO assert that param is a number
+                char param = *(op + 1);
+                if (param == ',' || param == 0) {
+                    b->operations[i].parameter = 1;
+                } else {
+                    b->operations[i].parameter = param - 48;
+                }
             }
         }
 
@@ -254,17 +334,20 @@ inline void Erase(Machine *m) { m->tape[m->pointer] = 0; }
 
 inline char Read(Machine *m) { return m->tape[m->pointer]; }
 
-inline void Right(Machine *m) {
+inline void Right(Machine *m, int count) {
     assert(m->pointer != TAPE_LENGTH);
-    ++m->pointer;
+    assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
+    m->pointer += count;
 }
 
-inline void Left(Machine *m) {
+inline void Left(Machine *m, int count) {
     assert(m->pointer != 0);
-    --m->pointer;
+    // TODO fix den under
+    // assert(count > 0 && (TAPE_LENGTH - m->pointer) > count);
+    m->pointer += count;
 }
 
-void PrintMachine(Machine *m, Branch *b, int topPointerAccessed) {
+void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
 
     char outputBuffer[TAPE_LENGTH + 2];  // Buffer used for printing
     char pointerBuffer[TAPE_LENGTH + 2];
@@ -283,16 +366,19 @@ void PrintMachine(Machine *m, Branch *b, int topPointerAccessed) {
     assert(strcpy_s(outputBuffer, sizeof(outputBuffer), m->tape) == 0);
     outputBuffer[topPointerAccessed] = '\0';
 
-    Configuration *c = &m->configurations[m->configuration];
+    if(printInfo) {
+        Configuration *c = &m->configurations[m->configuration];
+        Branch *b = &c->branch[m->branch];
 
-    printf("%s - %s:%s\n[%s]\n\n", pointerBuffer, c->name, b->info, outputBuffer);
+        printf("%s - %s:%s\n[%s]\n\n", pointerBuffer, c->name, b->info, outputBuffer);
+    } else {
+        printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
+    }
 }
 
 
-void RunMachine(Machine *m, int iterations) {
+void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
     int topPointerAccessed = 1;  // Value used for determining how much to print
-    //PrintMachine(m, topPointerAccessed);
-    //std::cout << pointerBuffer << "\n[" << outputBuffer << " ]\n" << std::endl;
 
     while (iterations-- > 0) {
         assert(m->pointer <= TAPE_LENGTH);
@@ -309,8 +395,9 @@ void RunMachine(Machine *m, int iterations) {
             if (branch.matchSymbol != ELSE && branch.matchSymbol != symbol) {
                 continue;
             }
+            // For printing purposes
+            m->branch = branchIndex;
 
-            // Set configuration for next iteration
 
             // Execute all operations in branch until a N
             bool nop = false;
@@ -328,7 +415,7 @@ void RunMachine(Machine *m, int iterations) {
                                 Erase(m);
                             } break;
                     case R: {
-                                Right(m);
+                                Right(m, operation.parameter);
 
                                 // Change topPointerAccessed if we have
                                 // touched a higher pointer.
@@ -338,46 +425,33 @@ void RunMachine(Machine *m, int iterations) {
                                 }
                             } break;
                     case L: {
-                                Left(m);
+                                Left(m, operation.parameter);
                             } break;
                 }
                 if (nop) {
                     break;
                 }
             }
-            PrintMachine(m, &branch, topPointerAccessed);
+            if(verbose) {
+                PrintMachine(m, topPointerAccessed, true);
+            }
             m->configuration = branch.nextConfiguration;
             break;
         }
     }
-}
 
-char *ReadSource(char *filename) {
+    // Here we want to print the result of the computation
+    // into a buffer for printing.
+    // We do this by writing every second value from the turing
+    // machine's tape into the result buffer (following turing's
+    // conventions).
 
-    // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
-    FILE *file;
-    fopen_s(&file, filename,
-            "rb");  // TODO Might be problematic outside of windows
-    fseek(file, 0, SEEK_END);
-    long fsize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char *bytecode = (char *)malloc(fsize + 1);
-    fread(bytecode, fsize, 1, file);
-    fclose(file);
-    bytecode[fsize] = 0;  // Add line-terminator
-
-    return bytecode;
-}
-
-int IsNumber(char *string) {
-    char *c;
-    for (c = string; *c != '\0'; c++) {
-        if (!isdigit((int)*c)) {
-            return false;
-        }
+    int maxIndex = 2*floor(topPointerAccessed/2) + 2;
+    int resultIndex;
+    for(int tapeIndex = 0; tapeIndex < maxIndex; tapeIndex += 2) {
+        result[resultIndex++] = m->tape[tapeIndex];
     }
-    return true;
+
 }
 
 int main(int argc, char *argv[]) {
@@ -403,9 +477,33 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+
+    char result[256] = {0};
+
     char *bytecode = ReadSource(filename);
     Machine m = Parse(bytecode);
-    RunMachine(&m, timesToRun);
+    RunMachine(&m, timesToRun, result, true);
+
+    char stringResult[256];
+    ParseBinaryString(stringResult, result);
+
+    float floatResult = ParseBinaryPointValue(result);
+
+    // Print interpretations of the result
+    printf("\nBinary:\t%s\nString:\t%s\nFloat:\t%f\n", result, stringResult, floatResult);
+
 
     return 0;
 }
+
+
+/*
+   char *floatTest = "0100";
+   float floatResult = ParseBinaryPointValue(floatTest);
+   printf("%f\n", floatResult);
+
+   char *stringTest = "0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100";
+   char stringResult[256];
+   ParseBinaryString(stringResult, stringTest);
+   printf("%s\n", stringResult);
+   */
