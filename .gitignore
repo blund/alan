@@ -4,4 +4,4 @@ shell.bat
 .clang-format
 
 # for the project
-turing.exe
+*.exe
