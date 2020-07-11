@@ -27,6 +27,7 @@ typedef enum Op { N = 0, P, E, R, L } Op;
 typedef struct Operation {
     Op op;
     char parameter;
+    char varParameter[64];
 
 } Operation;
 
@@ -253,7 +254,7 @@ Machine Parse(char *code) {
         char *lineContext = line;
         if (FindInString(lines[i], ':')) {
             // Tokeniser de ulike dele av branchen
-        // TODO test for bad size
+            // TODO test for bad size
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
 
@@ -305,7 +306,7 @@ Machine Parse(char *code) {
                 b->operations[i].op = N;
             } else if (*op == 'P') {
                 b->operations[i].op = P;
-                b->operations[i].parameter = *(op + 1);
+                strcpy(b->operations[i].varParameter, (op + 1));
             } else if (*op == 'E') {
                 b->operations[i].op = E;
             } else if (*op == 'R') {
@@ -336,14 +337,6 @@ Machine Parse(char *code) {
     }
     return m;
 }
-
-// The operations the machine can perform on the tape.
-void Print(Machine *m, char sym) { m->tape[m->pointer] = sym; }
-
-void Erase(Machine *m) { m->tape[m->pointer] = 0; }
-
-char Read(Machine *m) { return m->tape[m->pointer]; }
-
 void Right(Machine *m, int count) {
     assert(m->pointer != TAPE_LENGTH);
     assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
@@ -356,6 +349,22 @@ void Left(Machine *m, int count) {
     // assert(count > 0 && (TAPE_LENGTH - m->pointer) > count);
     m->pointer -= count;
 }
+// The operations the machine can perform on the tape.
+void Print(Machine *m, char *sym) {
+    assert(strlen(sym) > 0);
+    if(strlen(sym) > 1) {
+        while(*sym != 0) {
+            m->tape[m->pointer] = *sym++;
+            Right(m, 2);
+        }
+    } else {
+        m->tape[m->pointer] = *sym;
+    }
+}
+
+void Erase(Machine *m) { m->tape[m->pointer] = 0; }
+
+char Read(Machine *m) { return m->tape[m->pointer]; }
 
 void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
 
@@ -420,7 +429,7 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
                                 nop = true;
                             } break;
                     case P: {
-                                Print(m, operation.parameter);
+                                Print(m, operation.varParameter);
                             } break;
                     case E: {
                                 Erase(m);
@@ -428,12 +437,6 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
                     case R: {
                                 Right(m, operation.parameter);
 
-                                // Change topPointerAccessed if we have
-                                // touched a higher pointer.
-                                // This is for printing purposes.
-                                if (m->pointer > topPointerAccessed) {
-                                    topPointerAccessed = m->pointer;
-                                }
                             } break;
                     case L: {
                                 Left(m, operation.parameter);
@@ -443,6 +446,14 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
                     break;
                 }
             }
+
+            // Change topPointerAccessed if we have
+            // touched a higher pointer.
+            // This is for printing purposes.
+            if (m->pointer > topPointerAccessed) {
+                topPointerAccessed = m->pointer;
+            }
+
             if(verbose) {
                 PrintMachine(m, topPointerAccessed, true);
             }
