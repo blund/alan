@@ -21,8 +21,11 @@
 #define COMMENT_CHAR '!'
 #define CONFIGURATION_COUNT MAX_CONF
 #define CONFIGURATION_LENGTH 32
-#define NOLINE -1 // Used for error handling to signify that the error does not belong to any line (for instance file reading errors, internal errors etc).
 #define WINDOWSIZE 64
+
+#define MAX_ERROR 8
+#define ARGUMENT_ERROR -1
+#define FILE_ERROR -2
 
 typedef enum Op { N = 0, P, E, R, L } Op;
 
@@ -57,69 +60,18 @@ typedef struct Machine {
 
 } Machine;
 
-void Error(const char *msg, int line) {
-    if (line == NOLINE) {
-        fprintf(stderr,"\nError:\n\t%s\n", msg);
-    } else {
-        fprintf(stderr,"\nError in line %i:\n\t%s\n", ++line, msg);
-    }
-    exit(EXIT_FAILURE);
-}
+typedef struct Error {
+    char message[64];
+    int line;
+} Error;
 
-void Warning(const char *msg) {
-    fprintf(stderr,"warning:\n%s\n", msg);
-}
-char *ReadSource(char *filename) {
+typedef struct Context {
+    bool error;
+    bool errorOverflow;
+    int nextError;
+    Error errors[MAX_ERROR];
+} Context;
 
-    // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
-    FILE *file = fopen(filename, "rb");  // TODO Might be problematic outside of windows
-    if(!file) { Error("File could not be loaded. Does it exist?", NOLINE); };
-    fseek(file, 0, SEEK_END);
-    long fsize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char *bytecode = (char *)malloc(fsize + 1);
-    fread(bytecode, fsize, 1, file);
-    fclose(file);
-    bytecode[fsize] = 0;  // Add line-terminator
-
-    return bytecode;
-}
-
-float ParseBinaryPointValue(char *numstring) {
-    float sum;
-    char *c = numstring;
-    float n = 1;
-
-    while(*c != '\0') {
-        float i = (float)(*c++-48);
-        sum += i * 1.0f/powf(2.0f, n);
-        n *= 2;
-    }
-
-    return sum;
-}
-
-char *ParseBinaryString(char *result, char *binary) {
-    char *c = binary;
-    int resultIndex = 0;
-    while(*c != 0) {
-        int n = 128;
-        char sum = 0;
-        for(int i = 0; i < 8; i++) {
-            if(*c == 0) {
-                break;
-            }
-            if(*c == '1') {
-                sum += n * 1;
-            }
-            n /= 2;
-            c++;
-        }
-        result[resultIndex++] = sum;
-    }
-    return result;
-}
 char *trim(char *str) {
     // TODO Write a simpler version of this
     // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -167,6 +119,108 @@ char *trim(char *str) {
 
     return str;
 }
+char *tokenize(char *input, char delim, char *context) {
+    if(input != NULL) {
+        strcpy(context, input);
+    }
+    int count = 0;
+    for (int i = 0; i < 1000; i++) {
+        if (context[i] == delim) {
+            char *result = (char*) malloc (i+1);
+            memcpy(result, context, i);
+            result[i] = 0;
+            strcpy(context, context + i + 1);
+            return trim(result);
+        }
+    }
+}
+
+void error(Context *c, char *msg, int line) {
+    c->error = true;
+    if(c->nextError < MAX_ERROR) {
+        // TODO bound check and assert
+        strcpy(c->errors[c->nextError].message, msg);
+        c->errors[c->nextError].line = line;
+        c->nextError++;
+    } else {
+        c->errorOverflow = true;
+    }
+
+}
+
+void handleErrors(Context *c) {
+    for(int i = 0; i < c->nextError; i++) {
+        int line = c->errors[i].line;
+        char *msg = c->errors[i].message;
+        if (line == FILE_ERROR) {
+            fprintf(stderr,"\n\tFile error:\n\t  %s\n", msg);
+        } else if (line == ARGUMENT_ERROR){
+            fprintf(stderr,"\n\tArgument error:\n\t  %s\n", msg);
+        } else {
+            fprintf(stderr,"\n\tError in line %i:\n\t  %s\n", ++line, msg);
+        }
+    }
+    exit(EXIT_FAILURE);
+
+
+}
+
+
+char *ReadSource(Context *c, char *filename) {
+
+    // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
+    FILE *file = fopen(filename, "rb");  // TODO Might be problematic outside of windows
+    if(!file) {
+        error(c, "File could not be loaded. Does it exist?", FILE_ERROR);
+        return 0;
+    };
+    fseek(file, 0, SEEK_END);
+    long fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *bytecode = (char *)malloc(fsize + 1);
+    fread(bytecode, fsize, 1, file);
+    fclose(file);
+    bytecode[fsize] = 0;  // Add line-terminator
+
+    return bytecode;
+}
+
+float ParseBinaryPointValue(char *numstring) {
+    float sum;
+    char *c = numstring;
+    float n = 1;
+
+    while(*c != '\0') {
+        float i = (float)(*c++-48);
+        sum += i * 1.0f/powf(2.0f, n);
+        n *= 2;
+    }
+
+    return sum;
+}
+
+char *ParseBinaryString(char *result, char *binary) {
+    char *c = binary;
+    int resultIndex = 0;
+    while(*c != 0) {
+        int n = 128;
+        char sum = 0;
+        for(int i = 0; i < 8; i++) {
+            if(*c == 0) {
+                break;
+            }
+            if(*c == '1') {
+                sum += n * 1;
+            }
+            n /= 2;
+            c++;
+        }
+        result[resultIndex++] = sum;
+    }
+    return result;
+}
+
 
 int findOrInsert(char strArray[CONFIGURATION_COUNT][CONFIGURATION_LENGTH], char *str) {
     for (int index = 0; index < CONFIGURATION_COUNT; index++) {
@@ -224,7 +278,13 @@ int IsNumber(char *string) {
     return true;
 }
 
-Machine Parse(char *code) {
+bool isEmpty(char *string) {
+    return string == NULL || string[0] == '\0';
+}
+
+Machine Parse(Context *c, char *code) {
+    bool parseError;
+
     Machine m = {0};
     for (int i = 0; i < TAPE_LENGTH; i++) {
         m.tape[i] = ' ';
@@ -247,7 +307,7 @@ Machine Parse(char *code) {
     char *lines[CONFIGURATION_LENGTH] = {0};
     int lineCount = splitOn(lines, codeToParse, newline);
 
-    Configuration *c;
+    Configuration *conf;
     int branchIndex = 0;
     for (int i = 0; i < lineCount; ++i) {
         char line[256];
@@ -270,21 +330,22 @@ Machine Parse(char *code) {
             // Tokeniser de ulike dele av branchen
             // TODO test for bad size
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
-            name = trim(name);
-            if(!*lineContext) { Error("Configuration is missing name", i); };
+            if(isEmpty(lineContext)) {
+                error(c, "Configuration is missing name", i);
+            };
 
-            int configurationIndex = findOrInsert(configNames, name);
-            c = &m.configurations[configurationIndex];
+            int configurationIndex = findOrInsert(configNames, trim(name));
+            conf = &m.configurations[configurationIndex];
 
             // TODO test for bad size
-            strcpy(c->name, name);
+            strcpy(conf->name, name);
 
 
             // Reset branch index since we are in a new configuration
             branchIndex = 0;
         }
         // Increment branch index for next pass
-        Branch *b = &c->branch[branchIndex++];
+        Branch *b = &conf->branch[branchIndex++];
 
         // At this point, what is left in lineContext is
         // the information of the branch on the line
@@ -297,14 +358,16 @@ Machine Parse(char *code) {
 
         char *symbol = strtok_r(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
-        if(!*symbol) { Error("Branch is missing match symbol (first parameter)", i); };
+        bool isNull = symbol == NULL;
+        bool isEnd = symbol[0] == '\0';
+        if(isEmpty(symbol)) { error(c, "branch is missing match symbol (first parameter)", i); };
 
         char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
 
         char *next = strtok_r(NULL, inBranchDelim, &lineContext);
         next = trim(next);
-        if(!next) { Error("Branch is missing next configuration (last parameter)", i); };
+        if(isEmpty(next)) { error(c, "branch is missing next configuration (last parameter)", i); };
 
 
         // Avgjør hva match-symbol skal vare, ta hensyn til definerte variabler
@@ -356,6 +419,7 @@ Machine Parse(char *code) {
     }
     return m;
 }
+
 void Right(Machine *m, int count) {
     assert(m->pointer != TAPE_LENGTH);
     assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
@@ -535,7 +599,23 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
 
 }
 
+
+
 int main(int argc, char *argv[]) {
+
+    char context[128];
+    char *testString = "  first   :   second   : last";
+    char delim = ':';
+
+    char *res1 = tokenize(testString, delim, context);
+    printf("'%s', '%s'\n", res1, context);
+    free(res1);
+    char *res2 = tokenize(NULL, delim, context);
+    printf("'%s', '%s'\n", res2, context);
+    free(res2);
+
+    Context c = {0};
+
     int timesToRun = -1;
     char *filename = 0;
     bool verbose = false;
@@ -555,19 +635,21 @@ int main(int argc, char *argv[]) {
     }
 
     if (filename == 0) {
-        printf("%s\n", "Error: no filename specified");
-        return 1;
+        error(&c, "no filename specified", FILE_ERROR);
     }
 
     if (timesToRun == -1) {
-        printf("%s\n", "Error: please specify number of passes to make");
-        return 1;
+        error(&c, "please specify number of passes to make", FILE_ERROR);
     }
 
     char result[256] = {0};
 
-    char *bytecode = ReadSource(filename);
-    Machine m = Parse(bytecode);
+
+    char *bytecode = ReadSource(&c, filename);
+    Machine m = Parse(&c, bytecode);
+    if(c.error) {
+        handleErrors(&c);
+    }
 
     RunMachine(&m, timesToRun, result, verbose);
 
