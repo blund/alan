@@ -251,8 +251,6 @@ bool FindInString(char *string, char symbol) {
     return false;
 }
 
-
-
 int IsNumber(char *string) {
     char *c;
     for (c = string; *c != '\0'; c++) {
@@ -265,6 +263,17 @@ int IsNumber(char *string) {
 
 bool isEmpty(char *string) {
     return string == NULL || string[0] == '\0';
+}
+
+bool legalConfigName(char *string) {
+    char *c;
+    for (c = string; *c != '\0'; c++) {
+        if (islower((int)*c) || *c == ' ') {
+            continue;
+        }
+        return false;
+    }
+    return true;
 }
 
 Machine Parse(Context *c, char *code) {
@@ -315,9 +324,16 @@ Machine Parse(Context *c, char *code) {
             // Tokeniser de ulike dele av branchen
             // TODO test for bad size
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
-            if(isEmpty(lineContext)) {
-                error(c, "Configuration is missing name", i);
+            name = trim(name);
+            if(isEmpty(lineContext) && !name) {
+                error(c, "missing configuration name", i);
+                lineContext = name;
             };
+
+            if(!legalConfigName(name)) {
+                error(c, "configuration name must be all lower case", i);
+            }
+
 
             int configurationIndex = findOrInsert(configNames, trim(name));
             conf = &m.configurations[configurationIndex];
@@ -329,6 +345,15 @@ Machine Parse(Context *c, char *code) {
             // Reset branch index since we are in a new configuration
             branchIndex = 0;
         }
+        if (conf == NULL) {
+            error(c, "missing configuration name (declare like 'begin: ...'", i);
+            continue;
+        }
+        if (isEmpty(lineContext)) {
+            error(c, "configuration is missing parameters", i);
+            continue;
+            }
+
         // Increment branch index for next pass
         Branch *b = &conf->branch[branchIndex++];
 
@@ -343,8 +368,6 @@ Machine Parse(Context *c, char *code) {
 
         char *symbol = strtok_r(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
-        bool isNull = symbol == NULL;
-        bool isEnd = symbol[0] == '\0';
         if(isEmpty(symbol)) { error(c, "branch is missing match symbol (first parameter)", i); };
 
         char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
@@ -352,7 +375,11 @@ Machine Parse(Context *c, char *code) {
 
         char *next = strtok_r(NULL, inBranchDelim, &lineContext);
         next = trim(next);
-        if(isEmpty(next)) { error(c, "branch is missing next configuration (last parameter)", i); };
+        bool noNext;
+        if(isEmpty(next)) {
+            error(c, "branch is missing next configuration (last parameter)", i);
+            noNext = true;
+        };
 
 
         // Avgjør hva match-symbol skal vare, ta hensyn til definerte variabler
@@ -398,6 +425,7 @@ Machine Parse(Context *c, char *code) {
         }
 
         // Sett inn index til neste konfigurasjon
+        if(noNext) { continue; }
         int index = findOrInsert(configNames, next);
         assert(index < 0xff);
         b->nextConfiguration = (uint8_t)index;
