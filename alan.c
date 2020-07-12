@@ -119,21 +119,6 @@ char *trim(char *str) {
 
     return str;
 }
-char *tokenize(char *input, char delim, char *context) {
-    if(input != NULL) {
-        strcpy(context, input);
-    }
-    int count = 0;
-    for (int i = 0; i < 1000; i++) {
-        if (context[i] == delim) {
-            char *result = (char*) malloc (i+1);
-            memcpy(result, context, i);
-            result[i] = 0;
-            strcpy(context, context + i + 1);
-            return trim(result);
-        }
-    }
-}
 
 void error(Context *c, char *msg, int line) {
     c->error = true;
@@ -602,17 +587,6 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
 
 
 int main(int argc, char *argv[]) {
-
-    char context[128];
-    char *testString = "  first   :   second   : last";
-    char delim = ':';
-
-    char *res1 = tokenize(testString, delim, context);
-    printf("'%s', '%s'\n", res1, context);
-    free(res1);
-    char *res2 = tokenize(NULL, delim, context);
-    printf("'%s', '%s'\n", res2, context);
-    free(res2);
 
     Context c = {0};
 
