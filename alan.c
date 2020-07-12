@@ -12,15 +12,17 @@
 #include <assert.h>
 #include <math.h>
 
-#define TAPE_LENGTH 512
+#define TAPE_LENGTH 256
 #define MAX_BRANCH_COUNT 8
-#define MAX_OPERATION_COUNT 32
-#define MAX_CONF 32
+#define MAX_OPERATION_COUNT 16
+#define MAX_CONF 16
 #define NONE ' '
 #define ELSE 0xff
 #define COMMENT_CHAR '!'
 #define CONFIGURATION_COUNT MAX_CONF
-#define CONFIGURATION_LENGTH 64
+#define CONFIGURATION_LENGTH 32
+#define NOLINE -1
+#define WINDOWSIZE 64
 
 typedef enum Op { N = 0, P, E, R, L } Op;
 
@@ -55,16 +57,23 @@ typedef struct Machine {
 
 } Machine;
 
-void Error(const char *msg) {
-    fprintf(stderr,"%s\n", msg);
+void Error(const char *msg, int line) {
+    if (line == NOLINE) {
+        fprintf(stderr,"\nError:\n\t%s\n", msg);
+    } else {
+        fprintf(stderr,"\nError in line %i:\n\t%s\n", ++line, msg);
+    }
     exit(EXIT_FAILURE);
 }
 
+void Warning(const char *msg) {
+    fprintf(stderr,"warning:\n%s\n", msg);
+}
 char *ReadSource(char *filename) {
 
     // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
-    FILE *file = fopen(filename,
-            "rb");  // TODO Might be problematic outside of windows
+    FILE *file = fopen(filename, "rb");  // TODO Might be problematic outside of windows
+    if(!file) { Error("File could not be loaded. Does it exist?", NOLINE); };
     fseek(file, 0, SEEK_END);
     long fsize = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -262,6 +271,7 @@ Machine Parse(char *code) {
             // TODO test for bad size
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
+            if(!*lineContext) { Error("Configuration is missing name", i); };
 
             int configurationIndex = findOrInsert(configNames, name);
             c = &m.configurations[configurationIndex];
@@ -287,10 +297,14 @@ Machine Parse(char *code) {
 
         char *symbol = strtok_r(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
+        if(!*symbol) { Error("Branch is missing match symbol (first parameter)", i); };
+
         char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
+
         char *next = strtok_r(NULL, inBranchDelim, &lineContext);
         next = trim(next);
+        if(!next) { Error("Branch is missing next configuration (last parameter)", i); };
 
 
         // Avgjør hva match-symbol skal vare, ta hensyn til definerte variabler
@@ -399,7 +413,7 @@ void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound, int upperB
 
     // TODO test for bad size
     if ( lowerBound != -1 || upperBound != -1 ) {
-        char boundBuffer[lowerBound + upperBound + 1];
+        char boundBuffer[WINDOWSIZE + 1];
         outputBuffer[upperBound] = 0;
         strcpy(boundBuffer,  outputBuffer+lowerBound);
         strcpy(outputBuffer, boundBuffer);
