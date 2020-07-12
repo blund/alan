@@ -21,7 +21,7 @@
 #define COMMENT_CHAR '!'
 #define CONFIGURATION_COUNT MAX_CONF
 #define CONFIGURATION_LENGTH 32
-#define NOLINE -1
+#define NOLINE -1 // Used for error handling to signify that the error does not belong to any line (for instance file reading errors, internal errors etc).
 #define WINDOWSIZE 64
 
 typedef enum Op { N = 0, P, E, R, L } Op;
