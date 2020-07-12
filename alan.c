@@ -12,15 +12,20 @@
 #include <assert.h>
 #include <math.h>
 
-#define TAPE_LENGTH 512
+#define TAPE_LENGTH 256
 #define MAX_BRANCH_COUNT 8
-#define MAX_OPERATION_COUNT 32
-#define MAX_CONF 32
+#define MAX_OPERATION_COUNT 16
+#define MAX_CONF 16
 #define NONE ' '
 #define ELSE 0xff
 #define COMMENT_CHAR '!'
 #define CONFIGURATION_COUNT MAX_CONF
-#define CONFIGURATION_LENGTH 64
+#define CONFIGURATION_LENGTH 32
+#define WINDOWSIZE 64
+
+#define MAX_ERROR 8
+#define ARGUMENT_ERROR -1
+#define FILE_ERROR -2
 
 typedef enum Op { N = 0, P, E, R, L } Op;
 
@@ -55,57 +60,18 @@ typedef struct Machine {
 
 } Machine;
 
-char *ReadSource(char *filename) {
+typedef struct Error {
+    char message[64];
+    int line;
+} Error;
 
-    // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
-    FILE *file = fopen(filename,
-            "rb");  // TODO Might be problematic outside of windows
-    fseek(file, 0, SEEK_END);
-    long fsize = ftell(file);
-    fseek(file, 0, SEEK_SET);
+typedef struct Context {
+    bool error;
+    bool errorOverflow;
+    int nextError;
+    Error errors[MAX_ERROR];
+} Context;
 
-    char *bytecode = (char *)malloc(fsize + 1);
-    fread(bytecode, fsize, 1, file);
-    fclose(file);
-    bytecode[fsize] = 0;  // Add line-terminator
-
-    return bytecode;
-}
-
-float ParseBinaryPointValue(char *numstring) {
-    float sum;
-    char *c = numstring;
-    float n = 1;
-
-    while(*c != '\0') {
-        float i = (float)(*c++-48);
-        sum += i * 1.0f/powf(2.0f, n);
-        n *= 2;
-    }
-
-    return sum;
-}
-
-char *ParseBinaryString(char *result, char *binary) {
-    char *c = binary;
-    int resultIndex = 0;
-    while(*c != 0) {
-        int n = 128;
-        char sum = 0;
-        for(int i = 0; i < 8; i++) {
-            if(*c == 0) {
-                break;
-            }
-            if(*c == '1') {
-                sum += n * 1;
-            }
-            n /= 2;
-            c++;
-        }
-        result[resultIndex++] = sum;
-    }
-    return result;
-}
 char *trim(char *str) {
     // TODO Write a simpler version of this
     // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -154,6 +120,93 @@ char *trim(char *str) {
     return str;
 }
 
+void error(Context *c, char *msg, int line) {
+    c->error = true;
+    if(c->nextError < MAX_ERROR) {
+        // TODO bound check and assert
+        strcpy(c->errors[c->nextError].message, msg);
+        c->errors[c->nextError].line = line;
+        c->nextError++;
+    } else {
+        c->errorOverflow = true;
+    }
+
+}
+
+void handleErrors(Context *c) {
+    for(int i = 0; i < c->nextError; i++) {
+        int line = c->errors[i].line;
+        char *msg = c->errors[i].message;
+        if (line == FILE_ERROR) {
+            fprintf(stderr,"\n\tFile error:\n\t  %s\n", msg);
+        } else if (line == ARGUMENT_ERROR){
+            fprintf(stderr,"\n\tArgument error:\n\t  %s\n", msg);
+        } else {
+            fprintf(stderr,"\n\tError in line %i:\n\t  %s\n", ++line, msg);
+        }
+    }
+    exit(EXIT_FAILURE);
+
+
+}
+
+
+char *ReadSource(Context *c, char *filename) {
+
+    // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
+    FILE *file = fopen(filename, "rb");  // TODO Might be problematic outside of windows
+    if(!file) {
+        error(c, "File could not be loaded. Does it exist?", FILE_ERROR);
+        return 0;
+    };
+    fseek(file, 0, SEEK_END);
+    long fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *bytecode = (char *)malloc(fsize + 1);
+    fread(bytecode, fsize, 1, file);
+    fclose(file);
+    bytecode[fsize] = 0;  // Add line-terminator
+
+    return bytecode;
+}
+
+float ParseBinaryPointValue(char *numstring) {
+    float sum;
+    char *c = numstring;
+    float n = 1;
+
+    while(*c != '\0') {
+        float i = (float)(*c++-48);
+        sum += i * 1.0f/powf(2.0f, n);
+        n *= 2;
+    }
+
+    return sum;
+}
+
+char *ParseBinaryString(char *result, char *binary) {
+    char *c = binary;
+    int resultIndex = 0;
+    while(*c != 0) {
+        int n = 128;
+        char sum = 0;
+        for(int i = 0; i < 8; i++) {
+            if(*c == 0) {
+                break;
+            }
+            if(*c == '1') {
+                sum += n * 1;
+            }
+            n /= 2;
+            c++;
+        }
+        result[resultIndex++] = sum;
+    }
+    return result;
+}
+
+
 int findOrInsert(char strArray[CONFIGURATION_COUNT][CONFIGURATION_LENGTH], char *str) {
     for (int index = 0; index < CONFIGURATION_COUNT; index++) {
         if (strArray[index][0] == 0) {
@@ -198,8 +251,6 @@ bool FindInString(char *string, char symbol) {
     return false;
 }
 
-
-
 int IsNumber(char *string) {
     char *c;
     for (c = string; *c != '\0'; c++) {
@@ -210,7 +261,24 @@ int IsNumber(char *string) {
     return true;
 }
 
-Machine Parse(char *code) {
+bool isEmpty(char *string) {
+    return string == NULL || string[0] == '\0';
+}
+
+bool legalConfigName(char *string) {
+    char *c;
+    for (c = string; *c != '\0'; c++) {
+        if (islower((int)*c) || *c == ' ') {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+Machine Parse(Context *c, char *code) {
+    bool parseError;
+
     Machine m = {0};
     for (int i = 0; i < TAPE_LENGTH; i++) {
         m.tape[i] = ' ';
@@ -233,7 +301,7 @@ Machine Parse(char *code) {
     char *lines[CONFIGURATION_LENGTH] = {0};
     int lineCount = splitOn(lines, codeToParse, newline);
 
-    Configuration *c;
+    Configuration *conf;
     int branchIndex = 0;
     for (int i = 0; i < lineCount; ++i) {
         char line[256];
@@ -257,19 +325,37 @@ Machine Parse(char *code) {
             // TODO test for bad size
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
+            if(isEmpty(lineContext) && !name) {
+                error(c, "missing configuration name", i);
+                lineContext = name;
+            };
 
-            int configurationIndex = findOrInsert(configNames, name);
-            c = &m.configurations[configurationIndex];
+            if(!legalConfigName(name)) {
+                error(c, "configuration name must be all lower case", i);
+            }
+
+
+            int configurationIndex = findOrInsert(configNames, trim(name));
+            conf = &m.configurations[configurationIndex];
 
             // TODO test for bad size
-            strcpy(c->name, name);
+            strcpy(conf->name, name);
 
 
             // Reset branch index since we are in a new configuration
             branchIndex = 0;
         }
+        if (conf == NULL) {
+            error(c, "missing configuration name (declare like 'begin: ...'", i);
+            continue;
+        }
+        if (isEmpty(lineContext)) {
+            error(c, "configuration is missing parameters", i);
+            continue;
+            }
+
         // Increment branch index for next pass
-        Branch *b = &c->branch[branchIndex++];
+        Branch *b = &conf->branch[branchIndex++];
 
         // At this point, what is left in lineContext is
         // the information of the branch on the line
@@ -282,10 +368,18 @@ Machine Parse(char *code) {
 
         char *symbol = strtok_r(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
+        if(isEmpty(symbol)) { error(c, "branch is missing match symbol (first parameter)", i); };
+
         char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
+
         char *next = strtok_r(NULL, inBranchDelim, &lineContext);
         next = trim(next);
+        bool noNext;
+        if(isEmpty(next)) {
+            error(c, "branch is missing next configuration (last parameter)", i);
+            noNext = true;
+        };
 
 
         // Avgjør hva match-symbol skal vare, ta hensyn til definerte variabler
@@ -331,12 +425,14 @@ Machine Parse(char *code) {
         }
 
         // Sett inn index til neste konfigurasjon
+        if(noNext) { continue; }
         int index = findOrInsert(configNames, next);
         assert(index < 0xff);
         b->nextConfiguration = (uint8_t)index;
     }
     return m;
 }
+
 void Right(Machine *m, int count) {
     assert(m->pointer != TAPE_LENGTH);
     assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
@@ -394,7 +490,7 @@ void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound, int upperB
 
     // TODO test for bad size
     if ( lowerBound != -1 || upperBound != -1 ) {
-        char boundBuffer[lowerBound + upperBound + 1];
+        char boundBuffer[WINDOWSIZE + 1];
         outputBuffer[upperBound] = 0;
         strcpy(boundBuffer,  outputBuffer+lowerBound);
         strcpy(outputBuffer, boundBuffer);
@@ -516,7 +612,12 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
 
 }
 
+
+
 int main(int argc, char *argv[]) {
+
+    Context c = {0};
+
     int timesToRun = -1;
     char *filename = 0;
     bool verbose = false;
@@ -536,19 +637,21 @@ int main(int argc, char *argv[]) {
     }
 
     if (filename == 0) {
-        printf("%s\n", "Error: no filename specified");
-        return 1;
+        error(&c, "no filename specified", FILE_ERROR);
     }
 
     if (timesToRun == -1) {
-        printf("%s\n", "Error: please specify number of passes to make");
-        return 1;
+        error(&c, "please specify number of passes to make", FILE_ERROR);
     }
 
     char result[256] = {0};
 
-    char *bytecode = ReadSource(filename);
-    Machine m = Parse(bytecode);
+
+    char *bytecode = ReadSource(&c, filename);
+    Machine m = Parse(&c, bytecode);
+    if(c.error) {
+        handleErrors(&c);
+    }
 
     RunMachine(&m, timesToRun, result, verbose);
 
