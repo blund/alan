@@ -72,6 +72,11 @@ typedef struct Context {
     Error errors[MAX_ERROR];
 } Context;
 
+typedef struct ConfigDefHelper {
+    bool defined;
+    char configName[CONFIGURATION_LENGTH];
+} ConfigDefHelper;
+
 char *trim(char *str) {
     // TODO Write a simpler version of this
     // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -207,25 +212,35 @@ char *ParseBinaryString(char *result, char *binary) {
 }
 
 
-int findOrInsert(char strArray[CONFIGURATION_COUNT][CONFIGURATION_LENGTH], char *str) {
-    for (int index = 0; index < CONFIGURATION_COUNT; index++) {
-        if (strArray[index][0] == 0) {
-
+int insertConfig(ConfigDefHelper array[CONFIGURATION_COUNT], char *str) {
+    for (int i = 0; i < CONFIGURATION_COUNT; i++) {
+        if (array[i].configName[0] == 0) {
             // We have found an empty spot,
             // which means the identifier is not in the list,
             // so we put it here
             // TODO handle bas size
-            strcpy(strArray[index], str);
-            return index;
+            strcpy(array[i].configName, str);
+            return i;
 
-        } else if (strcmp(strArray[index], str) == 0) {
+        } else if (strcmp(array[i].configName, str) == 0) {
 
             // The identifier already exists, so we return its return index
-            return index;
+            return i;
         }
         continue;
     }
     assert(false);
+    return -1;
+}
+int findConfig(ConfigDefHelper array[CONFIGURATION_COUNT], char *str) {
+    for (int i = 0; i < CONFIGURATION_COUNT; i++) {
+        if (strcmp(array[i].configName, str) == 0) {
+
+            // The identifier already exists, so we return its return index
+            return i;
+        }
+        continue;
+    }
     return -1;
 }
 
@@ -284,7 +299,7 @@ Machine Parse(Context *c, char *code) {
         m.tape[i] = ' ';
     }
 
-    char configNames[CONFIGURATION_COUNT][CONFIGURATION_LENGTH] = {0};
+    ConfigDefHelper configs[CONFIGURATION_COUNT] = {0};
 
     // Definer delimitere
     char newline[] = "\n";
@@ -334,8 +349,13 @@ Machine Parse(Context *c, char *code) {
                 error(c, "configuration name must be all lower case", i);
             }
 
+            int prevIndex = findConfig(configs, name);
+            if (configs[prevIndex].defined) {
+                error(c, "redefinition of configuration", i);
+            }
 
-            int configurationIndex = findOrInsert(configNames, trim(name));
+            int configurationIndex = insertConfig(configs, name);
+            configs[configurationIndex].defined = true;
             conf = &m.configurations[configurationIndex];
 
             // TODO test for bad size
@@ -426,7 +446,7 @@ Machine Parse(Context *c, char *code) {
 
         // Sett inn index til neste konfigurasjon
         if(noNext) { continue; }
-        int index = findOrInsert(configNames, next);
+        int index = insertConfig(configs, next);
         assert(index < 0xff);
         b->nextConfiguration = (uint8_t)index;
     }
