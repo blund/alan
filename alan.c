@@ -55,6 +55,11 @@ typedef struct Machine {
 
 } Machine;
 
+void Error(const char *msg) {
+    fprintf(stderr,"%s\n", msg);
+    exit(EXIT_FAILURE);
+}
+
 char *ReadSource(char *filename) {
 
     // https://www.tutorialspoint.com/cprogramming/c_file_io.htm
