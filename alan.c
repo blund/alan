@@ -37,7 +37,9 @@ typedef struct Operation {
 } Operation;
 
 typedef struct Branch {
-    char info[256];
+    char symbol[32];
+    char next[32];
+    char ops[64];
     int matchSymbol;
     int nextConfiguration;
     Operation operations[MAX_OPERATION_COUNT];
@@ -177,7 +179,7 @@ char *ReadSource(Context *c, char *filename) {
 }
 
 float ParseBinaryPointValue(char *numstring) {
-    float sum;
+    float sum = 0;
     char *c = numstring;
     float n = 1;
 
@@ -201,7 +203,8 @@ char *ParseBinaryString(char *result, char *binary) {
                 break;
             }
             if(*c == '1') {
-                sum += n * 1;
+                assert(n < 0xff);
+                sum += (char)n * 1;
             }
             n /= 2;
             c++;
@@ -292,8 +295,6 @@ bool legalConfigName(char *string) {
 }
 
 Machine Parse(Context *c, char *code) {
-    bool parseError;
-
     Machine m = {0};
     for (int i = 0; i < TAPE_LENGTH; i++) {
         m.tape[i] = ' ';
@@ -316,42 +317,42 @@ Machine Parse(Context *c, char *code) {
     char *lines[CONFIGURATION_LENGTH] = {0};
     int lineCount = splitOn(lines, codeToParse, newline);
 
-    Configuration *conf;
+    Configuration *conf = NULL;
     int branchIndex = 0;
-    for (int i = 0; i < lineCount; ++i) {
-        char line[256];
+    for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex) {
+        char currentLine[256];
         // TODO test for bad size
-        strcpy(line, lines[i]);
+        strcpy(currentLine, lines[lineIndex]);
 
         // Skip the line if it is a comment
-        if (*line == COMMENT_CHAR) {
+        if (*currentLine == COMMENT_CHAR) {
             continue;
         }
-        if (*trim(line) == 0) {
+        if (*trim(currentLine) == 0) {
             continue;
         }
 
         // Determine whether or not this line is the declaration of a new
         // configuration. If it is, create the new configuration in the
         // machine struct and change 'c' to refer to it.
-        char *lineContext = line;
-        if (FindInString(lines[i], ':')) {
+        char *lineContext = currentLine;
+        if (FindInString(lines[lineIndex], ':')) {
             // Tokeniser de ulike dele av branchen
             // TODO test for bad size
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
             if(isEmpty(lineContext) && !name) {
-                error(c, "missing configuration name", i);
+                error(c, "missing configuration name", lineIndex);
                 lineContext = name;
             };
 
             if(!legalConfigName(name)) {
-                error(c, "configuration name must be all lower case", i);
+                error(c, "configuration name must be all lower case", lineIndex);
             }
 
             int prevIndex = findConfig(configs, name);
             if (configs[prevIndex].defined) {
-                error(c, "redefinition of configuration", i);
+                error(c, "redefinition of configuration", lineIndex);
             }
 
             int configurationIndex = insertConfig(configs, name);
@@ -366,16 +367,16 @@ Machine Parse(Context *c, char *code) {
             branchIndex = 0;
         }
         if (conf == NULL) {
-            error(c, "missing configuration name (declare like 'begin: ...'", i);
+            error(c, "missing configuration name (declare like 'begin: ...'", lineIndex);
             continue;
         }
         if (isEmpty(lineContext)) {
-            error(c, "configuration is missing parameters", i);
+            error(c, "configuration is missing parameters", lineIndex);
             continue;
-            }
+        }
 
         // Increment branch index for next pass
-        Branch *b = &conf->branch[branchIndex++];
+        Branch *b = &conf->branch[branchIndex];
 
         // At this point, what is left in lineContext is
         // the information of the branch on the line
@@ -384,20 +385,31 @@ Machine Parse(Context *c, char *code) {
         // Copy the branch information into the branch, for
         // printing purposes..
         // TODO test for bad size
-        strcpy(b->info, lineContext);
 
         char *symbol = strtok_r(NULL, inBranchDelim, &lineContext);
         symbol = trim(symbol);
-        if(isEmpty(symbol)) { error(c, "branch is missing match symbol (first parameter)", i); };
+        strcpy(b->symbol, symbol);
+
+        for(int i = 0; i < branchIndex; i++) {
+            if(strcmp(conf->branch[i].symbol, symbol) == 0) {
+                error(c, "branch for given symbol is already defined", lineIndex);
+            }
+        }
+        branchIndex++;
+
+        if(isEmpty(symbol)) { error(c, "branch is missing match symbol (first parameter)", lineIndex); };
 
         char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
         opsString = trim(opsString);
+        strcpy(b->ops, opsString);
 
         char *next = strtok_r(NULL, inBranchDelim, &lineContext);
         next = trim(next);
-        bool noNext;
+        strcpy(b->next, next);
+
+        bool noNext = false;
         if(isEmpty(next)) {
-            error(c, "branch is missing next configuration (last parameter)", i);
+            error(c, "branch is missing next configuration (last parameter)", lineIndex);
             noNext = true;
         };
 
@@ -531,7 +543,7 @@ void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound, int upperB
             leftLimit = '<';
         }
 
-        printf("> %s:%s\n%s\n%c%s%c\n\n\n", c->name, b->info, pointerBuffer, leftLimit, outputBuffer, rightLimit);
+        printf("> %s:%s | %s | %s\n%s\n%c%s%c\n\n\n", c->name, b->symbol, b->ops, b->next, pointerBuffer, leftLimit, outputBuffer, rightLimit);
     } else {
         printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
     }
@@ -624,15 +636,13 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
     // machine's tape into the result buffer (following turing's
     // conventions).
 
-    int maxIndex = 2*floor(topPointerAccessed/2) + 2;
-    int resultIndex;
+    int maxIndex = 2*(int)floor(topPointerAccessed/2) + 2;
+    int resultIndex = 0;
     for(int tapeIndex = 0; tapeIndex < maxIndex; tapeIndex += 2) {
         result[resultIndex++] = m->tape[tapeIndex];
     }
 
 }
-
-
 
 int main(int argc, char *argv[]) {
 
