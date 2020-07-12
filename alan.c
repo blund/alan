@@ -12,10 +12,10 @@
 #include <assert.h>
 #include <math.h>
 
-#define TAPE_LENGTH 128
+#define TAPE_LENGTH 512
 #define MAX_BRANCH_COUNT 8
 #define MAX_OPERATION_COUNT 32
-#define MAX_CONF 8
+#define MAX_CONF 32
 #define NONE ' '
 #define ELSE 0xff
 #define COMMENT_CHAR '!'
@@ -554,6 +554,7 @@ int main(int argc, char *argv[]) {
 
     char *bytecode = ReadSource(filename);
     Machine m = Parse(bytecode);
+
     RunMachine(&m, timesToRun, result, verbose);
 
     char stringResult[256];

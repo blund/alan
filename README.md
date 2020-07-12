@@ -8,17 +8,16 @@ This project defines a language for defining _m-configurations_ to be executed b
 Simply run `make` to compile the interpreter. You can then run it with the file to interpret and the number of passes to make, like this:
 ```
 make
-// alan.exe examplel\example.aln 3 (on windows)
-alan example/example.aln 3     // on linux/macos
 
- v
-[ ]
- v
-[0]
-  v
-[0 ]
-   v
-[0 1]
+Windows:
+alan.exe example/helloworld.aln 15
+
+Linux/Mac OS
+./alan example/helloworld.aln 15
+
+Binary: 0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
+String: hello world
+Float:  0.312515
 ```
 Just change the makefile to fit your needs, for instance if you want to use a different compiler.
 
