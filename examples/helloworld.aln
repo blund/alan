@@ -1,0 +1,30 @@
+! In this example, we showcase multi-value-printing
+! This file will, in 15 runs, print "hello world".
+!
+
+h: none      | P01101000 | e
+
+e: none      | P01100101 | mark e
+mark e: none | L, PE | l
+
+l: E         | R,  P01101100 | mark l
+   L         | R,  P01101100 | o
+   R         | R,  P01101100 | d
+
+mark l: none | L, PL | l
+o: none      | P01101111 | space
+   W         | R, P01101111 | r
+
+space: none  | P00100000 | w
+       D     | R, P00100000 | h
+
+
+w: none | P01110111 | mark w
+   else | PX | h
+mark w: none | L, PW | o
+
+r: none | P01110010 | mark r
+mark r: none | L, PR | l
+
+d: none | P01100100 | mark d
+mark d: none | L, PD | space
