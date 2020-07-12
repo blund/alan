@@ -366,7 +366,14 @@ void Erase(Machine *m) { m->tape[m->pointer] = 0; }
 
 char Read(Machine *m) { return m->tape[m->pointer]; }
 
-void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
+void CopyN(size_t SourceACount, char *SourceA, size_t DestCount, char *Dest) {
+    for (int Index = 0; Index < SourceACount; ++Index) {
+        *Dest++ = *SourceA++;
+    }
+    *Dest++ = 0;
+}
+
+void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound, int upperBound, bool verbose) {
 
     char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
     char pointerBuffer[TAPE_LENGTH];
@@ -379,27 +386,49 @@ void PrintMachine(Machine *m, int topPointerAccessed, bool printInfo) {
 
     // On the first pass the pointer will be set to 0, but
     // we want it to point on a blank space in the tape
-
-    pointerBuffer[pointer + 1] = 'v';
-    pointerBuffer[pointer + 2] = '\0';
-
-    // TODO test for bad size
     strcpy(outputBuffer,  m->tape);
     outputBuffer[topPointerAccessed + 1] = '\0';
 
-    if(printInfo) {
+    pointerBuffer[pointer - lowerBound + 1] = 'v';
+    pointerBuffer[pointer - lowerBound + 2] = '\0';
+
+    // TODO test for bad size
+    if ( lowerBound != -1 || upperBound != -1 ) {
+        char boundBuffer[lowerBound + upperBound + 1];
+        outputBuffer[upperBound] = 0;
+        strcpy(boundBuffer,  outputBuffer+lowerBound);
+        strcpy(outputBuffer, boundBuffer);
+
+        outputBuffer[lowerBound+upperBound] = '\0';
+    }
+
+    if(verbose) {
         Configuration *c = &m->configurations[m->configuration];
         Branch *b = &c->branch[m->branch];
 
-        printf("> %s:%s\n%s\n[%s]\n\n\n", c->name, b->info, pointerBuffer, outputBuffer);
+        char leftLimit = '[';
+        char rightLimit = ']';
+        if(upperBound < topPointerAccessed) {
+            rightLimit = '>';
+        }
+        if(lowerBound > 0) {
+            leftLimit = '<';
+        }
+
+        printf("> %s:%s\n%s\n%c%s%c\n\n\n", c->name, b->info, pointerBuffer, leftLimit, outputBuffer, rightLimit);
     } else {
         printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
     }
 }
 
 
+
 void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
     int topPointerAccessed = 1;  // Value used for determining how much to print
+
+    int window = 48;
+    int highBound = window;
+    int lowBound = 0;
 
     while (iterations-- > 0) {
         assert(m->pointer <= TAPE_LENGTH);
@@ -436,7 +465,6 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
                             } break;
                     case R: {
                                 Right(m, operation.parameter);
-
                             } break;
                     case L: {
                                 Left(m, operation.parameter);
@@ -453,9 +481,21 @@ void RunMachine(Machine *m, int iterations, char *result, bool verbose) {
             if (m->pointer > topPointerAccessed) {
                 topPointerAccessed = m->pointer;
             }
+            // Adjust the window of the tape to print
+            // if we move out of the defined boundaries
+            if ( m->pointer >= highBound || m->pointer <= lowBound) {
+                if (topPointerAccessed - m->pointer >= window/2) {
+                    printf("more");
+                    highBound = m->pointer + window/2 ;
+                    lowBound  = m->pointer - window/2 ;
+                } else {
+                    highBound = topPointerAccessed + 1;
+                    lowBound = highBound - window ;
+                }
+            }
 
             if(verbose) {
-                PrintMachine(m, topPointerAccessed, true);
+                PrintMachine(m, topPointerAccessed, lowBound, highBound, true);
             }
             m->configuration = branch.nextConfiguration;
             break;
@@ -487,7 +527,7 @@ int main(int argc, char *argv[]) {
             timesToRun = strtol(argv[i], &endPtr, 10);
         } else if (*argv[i] == '-') {
             if (*(argv[i] + 1) == 'v') {
-            verbose = true;
+                verbose = true;
             }
 
         } else if (!filename) {
@@ -504,7 +544,6 @@ int main(int argc, char *argv[]) {
         printf("%s\n", "Error: please specify number of passes to make");
         return 1;
     }
-
 
     char result[256] = {0};
 
