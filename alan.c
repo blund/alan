@@ -1,3 +1,15 @@
+/*
+ * Hvor vi slapp sist..
+ *
+ * Redefinerte parse-funksjonen til å lage en IR i stedet for å konstruere
+ * Machine på direkten.
+ *
+ * Nå må vi fikse
+ * TODO Parsing av operasjoner
+ * TODO Oversettelse til bytekode
+ * TODO Fikse feilhåndtering
+ */
+
 #define _CRT_SECURE_NO_WARNINGS 1
 #if defined(_MSC_VER)  // Check if we are using a windows compiler
 #define strtok_r strtok_s
@@ -78,11 +90,8 @@ typedef struct Machine {
  */
 typedef struct IOperation {
   char op;
-  bool isnum;  // True if num, false if string
-  union {
-    char *string;
-    int number;
-  } parameter;
+  bool isNum;
+  char *parameter;
 } IOperation;
 
 typedef struct IBranch {
@@ -167,6 +176,17 @@ char *trim(char *str) {
 
 void error(Context *c, char *msg, int line) {
   c->error = true;
+  if (c->nextError < MAX_ERROR) {
+    // TODO bound check and assert
+    c->errors[c->nextError].message = msg;
+    c->errors[c->nextError].line = line;
+    c->nextError++;
+  } else {
+    c->errorOverflow = true;
+  }
+}
+
+void warning(Context *c, char *msg, int line) {
   if (c->nextError < MAX_ERROR) {
     // TODO bound check and assert
     c->errors[c->nextError].message = msg;
@@ -272,11 +292,10 @@ int insert_config(IConfig array[MAX_CONF_COUNT], char *str) {
 
 int find_config(IConfig array[MAX_CONF_COUNT], char *str) {
   for (int i = 0; i < MAX_CONF_COUNT; i++) {
-    if(array[i].name == NULL) {
-        continue;
+    if (array[i].name == NULL) {
+      continue;
     }
     if (strcmp(array[i].name, str) == 0) {
-
       // The identifier already exists, so we return its return index
       return i;
     }
@@ -425,9 +444,28 @@ IR *parse(Context *c, IR *ir, char *code) {
 
     char *opsString = strtok_r(NULL, inBranchDelim, &lineContext);
     opsString = trim(opsString);
-    // TODO set ops for a branch..
-    // strcpy(branch->ops, opsString);
 
+    char *ops[MAX_OPERATION_COUNT] = {0};
+    int opCount = split_on(ops, opsString, operationDelim);
+
+    for (int i = 0; i < opCount; ++i) {
+      char *op = trim(ops[i]);
+      char *param = op + 1;
+
+      if (*op == 'N' || *op != 'E') {
+        // TODO Check that param does not exist
+        // This could simply be a warning
+      } else if (*op != 'P') {
+        // TODO Check that there is a parameter
+      } else if (*op == 'R' || *op == 'L') {
+        branch->ops[i].isNum = true;
+        // TODO Check that the argument is a number or blank
+      } else {
+        // TODO Illegal 'function' name
+      }
+      branch->ops[i].op = *op;
+      branch->ops[i].parameter = param;
+    }
     char *nextName = strtok_r(NULL, inBranchDelim, &lineContext);
     nextName = trim(nextName);
 
@@ -447,76 +485,19 @@ IR *parse(Context *c, IR *ir, char *code) {
 
       branch->next = &ir->configs[nextConfigIndex];
     }
-
-    // TODO TODO TODO this is the translation to bytecode, must be done later
-    /*
-    if (strcmp(symbol, "none") == 0) {
-      branch->matchSymbol = NONE;
-    } else if (strcmp(symbol, "else") == 0) {
-      branch->matchSymbol = ELSE;
-    } else {
-      branch->matchSymbol = *symbol;
-    }
-
-    // TODO Error handling during this parsing...
-    // TODO Parameter is no longer varParameter, but
-    // parameter.num or parameter.string
-    // TODO Also handle bool op.isnum
-    char *ops[MAX_OPERATION_COUNT] = {0};
-    int opCount = splitOn(ops, opsString, operationDelim);
-
-    for (int i = 0; i < opCount; ++i) {
-      char *op = trim(ops[i]);
-      if (*op == 'N') {
-        b->operations[i].op = N;
-      } else if (*op == 'P') {
-        b->operations[i].op = P;
-        strcpy(b->operations[i].varParameter, (op + 1));
-      } else if (*op == 'E') {
-        b->operations[i].op = E;
-      } else if (*op == 'R') {
-        b->operations[i].op = R;
-        // TODO assert that param is a number
-        char param = *(op + 1);
-        if (param == ',' || param == 0) {
-          b->operations[i].parameter = 1;
-        } else {
-          b->operations[i].parameter = param - 48;
-        }
-      } else if (*op == 'L') {
-        b->operations[i].op = L;
-        // TODO assert that param is a number
-        char param = *(op + 1);
-        if (param == ',' || param == 0) {
-          b->operations[i].parameter = 1;
-        } else {
-          b->operations[i].parameter = param - 48;
-        }
-      } else {
-        // TODO Error: invalid function name.
-      }
-    }
-    */
   }
-  // Iterate over branches of configs and gooo
+  // Iterate over branches of configs and check that their
+  // 'next' function is defined.
   /* TODO TODO TODO
-  for (int ci = 0; ci < MAX_CONF_COUNT; ci++) {
-    char name = ir.configs[ci].name[0];
-    bool defined = ir.configs[ci].defined;
-    if (name && !defined) {
-      error(c, "a configuration is not properly defined", 0);
-    }
-  }
-  */
+     for (int ci = 0; ci < MAX_CONF_COUNT; ci++) {
+     char name = ir.configs[ci].name[0];
+     bool defined = ir.configs[ci].defined;
+     if (name && !defined) {
+     error(c, "a configuration is not properly defined", 0);
+     }
+     }
+     */
 
-  /*
-  // TODO actually make the bytecode.
-  Machine m = {0};
-  for (int i = 0; i < TAPE_LENGTH; i++) {
-    m.tape[i] = ' ';
-  }
-  return m;
-  */
   // TODO handle_errors(c);
   return ir;
 }
@@ -558,57 +539,58 @@ void copy_n(size_t SourceACount, char *SourceA, size_t DestCount, char *Dest) {
 }
 
 /*
-void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound,
-                  int upperBound, bool verbose) {
-  char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
-  char pointerBuffer[TAPE_LENGTH];
+   void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound,
+   int upperBound, bool verbose) {
+   char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
+   char pointerBuffer[TAPE_LENGTH];
 
-  int pointer = (m->pointer == 0) ? 1 : m->pointer;
+   int pointer = (m->pointer == 0) ? 1 : m->pointer;
 
-  for (int i = 0; i <= pointer; i++) {
-    pointerBuffer[i] = ' ';
-  }
+   for (int i = 0; i <= pointer; i++) {
+   pointerBuffer[i] = ' ';
+   }
 
-  // On the first pass the pointer will be set to 0, but
-  // we want it to point on a blank space in the tape
-  strcpy(outputBuffer, m->tape);
-  outputBuffer[topPointerAccessed + 1] = '\0';
+// On the first pass the pointer will be set to 0, but
+// we want it to point on a blank space in the tape
+strcpy(outputBuffer, m->tape);
+outputBuffer[topPointerAccessed + 1] = '\0';
 
-  pointerBuffer[pointer - lowerBound + 1] = 'v';
-  pointerBuffer[pointer - lowerBound + 2] = '\0';
+pointerBuffer[pointer - lowerBound + 1] = 'v';
+pointerBuffer[pointer - lowerBound + 2] = '\0';
 
-  // TODO test for bad size
-  if (lowerBound != -1 || upperBound != -1) {
-    char boundBuffer[WINDOWSIZE + 1];
-    outputBuffer[upperBound] = 0;
-    strcpy(boundBuffer, outputBuffer + lowerBound);
-    strcpy(outputBuffer, boundBuffer);
+// TODO test for bad size
+if (lowerBound != -1 || upperBound != -1) {
+char boundBuffer[WINDOWSIZE + 1];
+outputBuffer[upperBound] = 0;
+strcpy(boundBuffer, outputBuffer + lowerBound);
+strcpy(outputBuffer, boundBuffer);
 
-    outputBuffer[lowerBound + upperBound] = '\0';
-  }
+outputBuffer[lowerBound + upperBound] = '\0';
+}
 
-  if (verbose) {
-    Configuration *c = &m->configurations[m->configuration];
-    Branch *b = &c->branch[m->branch];
+if (verbose) {
+Configuration *c = &m->configurations[m->configuration];
+Branch *b = &c->branch[m->branch];
 
-    char leftLimit = '[';
-    char rightLimit = ']';
-    if (upperBound < topPointerAccessed) {
-      rightLimit = '>';
-    }
-    if (lowerBound > 0) {
-      leftLimit = '<';
-    }
+char leftLimit = '[';
+char rightLimit = ']';
+if (upperBound < topPointerAccessed) {
+rightLimit = '>';
+}
+if (lowerBound > 0) {
+leftLimit = '<';
+}
 
-    printf("> %s:%s | %s | %s\n%s\n%c%s%c\n\n\n", c->name, b->symbol, b->ops,
-           b->next, pointerBuffer, leftLimit, outputBuffer, rightLimit);
-  } else {
-    printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
-  }
+printf("> %s:%s | %s | %s\n%s\n%c%s%c\n\n\n", c->name, b->symbol, b->ops,
+b->next, pointerBuffer, leftLimit, outputBuffer, rightLimit);
+} else {
+printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
+}
 }
 */
 
-void run_machine(Context *context, Machine *m, int iterations, char *result, bool verbose) {
+void run_machine(Context *context, Machine *m, int iterations, char *result,
+                 bool verbose) {
   int topPointerAccessed = 1;  // Value used for determining how much to print
 
   int window = 48;
@@ -708,6 +690,66 @@ Machine translate(IR ir) {
    * Legg til 'next' sin indeks ved find(ir.configs[i].next.name);
    *
    */
+
+  // TODO TODO TODO this is the translation to bytecode, must be done later
+  /*
+     if (strcmp(symbol, "none") == 0) {
+     branch->matchSymbol = NONE;
+     } else if (strcmp(symbol, "else") == 0) {
+     branch->matchSymbol = ELSE;
+     } else {
+     branch->matchSymbol = *symbol;
+     }
+
+  // TODO Error handling during this parsing...
+  // TODO Parameter is no longer varParameter, but
+  // parameter.num or parameter.string
+  // TODO Also handle bool op.isnum
+  char *ops[MAX_OPERATION_COUNT] = {0};
+  int opCount = splitOn(ops, opsString, operationDelim);
+
+  for (int i = 0; i < opCount; ++i) {
+  char *op = trim(ops[i]);
+  if (*op == 'N') {
+  b->operations[i].op = N;
+  } else if (*op == 'P') {
+  b->operations[i].op = P;
+  strcpy(b->operations[i].varParameter, (op + 1));
+  } else if (*op == 'E') {
+  b->operations[i].op = E;
+  } else if (*op == 'R') {
+  b->operations[i].op = R;
+  // TODO assert that param is a number
+  char param = *(op + 1);
+  if (param == ',' || param == 0) {
+  b->operations[i].parameter = 1;
+  } else {
+  b->operations[i].parameter = param - 48;
+  }
+  } else if (*op == 'L') {
+  b->operations[i].op = L;
+  // TODO assert that param is a number
+  char param = *(op + 1);
+  if (param == ',' || param == 0) {
+  b->operations[i].parameter = 1;
+  } else {
+  b->operations[i].parameter = param - 48;
+  }
+  } else {
+  // TODO Error: invalid function name.
+  }
+  }
+  */
+
+  /*
+  // TODO actually make the bytecode.
+  Machine m = {0};
+  for (int i = 0; i < TAPE_LENGTH; i++) {
+  m.tape[i] = ' ';
+  }
+  return m;
+  */
+
   Machine m;
   return m;
 }
@@ -741,25 +783,25 @@ int main(int argc, char *argv[]) {
     error(&c, "please specify number of passes to make", FILE_ERROR);
   }
 
-//  char result[256] = {0};
+  //  char result[256] = {0};
 
   char *bytecode = read_source(&c, filename);
 
-  IR ir = {0}; //(IR *)malloc(sizeof(IR));
+  IR ir = {0};  //(IR *)malloc(sizeof(IR));
 
   parse(&c, &ir, bytecode);
   // Machine m = translate(ir);
-/*  run_machine(&c, &m, timesToRun, result, verbose);
+  /*  run_machine(&c, &m, timesToRun, result, verbose);
 
-   char stringResult[256];
-  parse_string(stringResult, result);
+      char stringResult[256];
+      parse_string(stringResult, result);
 
-  float floatResult = parse_binary_point_value(result);
+      float floatResult = parse_binary_point_value(result);
 
   // Print interpretations of the result
   printf("\nBinary:\t%s\nString:\t%s\nFloat:\t%f\n", result, stringResult,
-         floatResult);
-         */
+  floatResult);
+  */
 
   return 0;
 }
