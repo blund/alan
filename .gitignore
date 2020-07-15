@@ -1,7 +1,6 @@
 # personal
-build.bat
-shell.bat
 .clang-format
+dev.bat
 
 # for the project
 *.exe
