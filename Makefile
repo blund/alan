@@ -10,7 +10,7 @@ $(target): alan.c
 	clang -o $(target) alan.c $(link)
 
 debug: alan.c
-	clang alan.c -g -gcodeview -o build/$(target)
+	clang alan.c -g -gcodeview -o w:/build/$(target)
 
 clean:
 	rm -f turing.o
