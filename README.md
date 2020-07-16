@@ -1,5 +1,10 @@
+# - NOTE -
+This readme contains slightly outdated information, and will be rewritten in the very near future.
+
 # alan
 A language and interpreter for running turing machines. Inspired by the book _Annotated Turing_.
+
+
 
 ## What does it do?
 This project defines a language for defining _m-configurations_ to be executed by a turing machine. It also contains an interpreter for said language, that shows the progress and result of the execution.

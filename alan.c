@@ -29,6 +29,7 @@
 
 #define ARGUMENT_ERROR -1
 #define FILE_ERROR -2
+#define NOLINE -1
 
 #define NOT_DEFINED -1
 
@@ -64,9 +65,8 @@ typedef struct Configuration {
 typedef struct Machine {
   int pointer;
   char tape[TAPE_LENGTH];
-
+  
   Configuration configurations[MAX_CONF_COUNT];
-
 } Machine;
 
 /*
@@ -177,6 +177,7 @@ void code_error(Context *c, char *msg, int line) {
   } else {
     c->errorOverflow = true;
   }
+
 }
 
 void error(Context *c, char *msg, int line) {
@@ -281,7 +282,7 @@ int insert_config(IConfig array[MAX_CONF_COUNT], char *str) {
       // We have found an empty spot,
       // which means the identifier is not in the list,
       // so we put it here
-      // TODO handle bas size
+      // TODO handle bad size
       array[i].name = str;
       return i;
 
@@ -417,6 +418,7 @@ IR *parse(Context *c, IR *ir, char *code) {
       conf->name = name;
       conf->definedOn = currentLine;
 
+
       // Reset branch index since we are in a new configuration
       branchIndex = 0;
     }
@@ -535,6 +537,7 @@ IR *parse(Context *c, IR *ir, char *code) {
 }
 
 void right(Machine *m, int count) {
+
   assert(m->pointer != TAPE_LENGTH);
   assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
   m->pointer += count;
@@ -546,7 +549,6 @@ void left(Machine *m, int count) {
   // assert(count > 0 && (TAPE_LENGTH - m->pointer) > count);
   m->pointer -= count;
 }
-// The operations the machine can perform on the tape.
 void print(Machine *m, char *sym) {
   assert(strlen(sym) > 0);
   if (strlen(sym) > 1) {
@@ -584,7 +586,6 @@ void print_machine(IConfig *configInfo, IBranch *branchInfo, Machine *m,
 
   printf("\n  $ %s:\t%s | %s | %s\n", configInfo->name, branchInfo->matchSymbol,
          branchInfo->opsString, branchInfo->next->name);
-
   // On the first pass the pointer will be set to 0, but
   // we want it to point on a blank space in the tape
   strcpy(outputBuffer, m->tape);
