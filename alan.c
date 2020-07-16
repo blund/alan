@@ -1,20 +1,3 @@
-/*
- * Hvor vi slapp sist..
- *
- * Redefinerte parse-funksjonen til å lage en IR i stedet for å konstruere
- * Machine på direkten.
- *
- *
- * Nå må vi fikse
- * TODO Bytt ut trim-funksjonen
- * TODO Fix printing av tilstand
- * TODO Ordne feilhåndtering for parsing av opersjoner
- * TODO Ordne andre feilmeldinger for parsing
- * TODO Feilmelding for runtime når maskinen ikke matcher på noe symbol
- * TODO Organiser denne filen
- * TODO Fiks readme
- */
-
 #define _CRT_SECURE_NO_WARNINGS 1
 #if defined(_MSC_VER)  // Check if we are using a windows compiler
 #define strtok_r strtok_s
