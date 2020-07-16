@@ -35,8 +35,8 @@
 
 #define NONE ' '
 #define COMMENT_CHAR '!'
-#define ELSE 0xff
-#define ANY 0xfe
+#define ANY '\x7f'
+#define ELSE '\x7e'
 
 #define WINDOWSIZE 32
 
@@ -644,45 +644,49 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
 
         Configuration c = m->configurations[m->configuration];
         for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; branchIndex++)
-        { char symbol = m->tape[m->pointer]; Branch branch = c.branches[branchIndex];
+        {
+            char symbol = m->tape[m->pointer]; Branch branch = c.branches[branchIndex];
 
             // Here we are checking whether or not we are in the correct branch
             // if we are not, we will go on to the next iteration.
             // If we are, we will execute the branch and move on to the next
             // configuration
-            if (branch.matchSymbol != symbol) {
+            if (branch.matchSymbol == symbol ||
+                    (branch.matchSymbol == ANY && symbol == 0) ||
+                    (branch.matchSymbol == ANY && symbol == 1) ||
+                    (branch.matchSymbol == ELSE)) {
+                // For printing purposes
+                m->branch = branchIndex;
+
+                // Execute all operations in branch until a N
+                bool nop = false;
+                for (int operationIndex = 0; operationIndex < MAX_OPERATION_COUNT;
+                        ++operationIndex) {
+                    Operation operation = branch.ops[operationIndex];
+                    switch (operation.name) {
+                        case N: {
+                                    nop = true;
+                                } break;
+                        case P: {
+                                    print(m, operation.string);
+                                } break;
+                        case E: {
+                                    erase(m);
+                                } break;
+                        case R: {
+                                    right(m, operation.number);
+                                } break;
+                        case L: {
+                                    left(m, operation.number);
+                                } break;
+                    }
+                    if (nop) {
+                        break;
+                    }
+                }
+            } else {
                 continue;
             }
-            // For printing purposes
-            m->branch = branchIndex;
-
-            // Execute all operations in branch until a N
-            bool nop = false;
-            for (int operationIndex = 0; operationIndex < MAX_OPERATION_COUNT;
-                    ++operationIndex) {
-                Operation operation = branch.ops[operationIndex];
-                switch (operation.name) {
-                    case N: {
-                                nop = true;
-                            } break;
-                    case P: {
-                                print(m, operation.string);
-                            } break;
-                    case E: {
-                                erase(m);
-                            } break;
-                    case R: {
-                                right(m, operation.number);
-                            } break;
-                    case L: {
-                                left(m, operation.number);
-                            } break;
-                }
-                if (nop) {
-                    break;
-                }
-            }
-
             // Change topPointerAccessed if we have
             // touched a higher pointer.
             // This is for printing purposes.
