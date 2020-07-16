@@ -6,9 +6,13 @@
  *
  *
  * Nå må vi fikse
- * TODO Parsing av operasjoner
- * TODO Oversettelse til bytekode
- * TODO Fikse feilhåndtering
+ * TODO Bytt ut trim-funksjonen
+ * TODO Fix printing av tilstand
+ * TODO Ordne feilhåndtering for parsing av opersjoner
+ * TODO Ordne andre feilmeldinger for parsing
+ * TODO Feilmelding for runtime når maskinen ikke matcher på noe symbol
+ * TODO Organiser denne filen
+ * TODO Fiks readme
  */
 
 #define _CRT_SECURE_NO_WARNINGS 1
@@ -38,7 +42,7 @@
 #define ANY '\x7f'
 #define ELSE '\x7e'
 
-#define WINDOWSIZE 32
+#define WINDOWSIZE 10
 
 #define ARGUMENT_ERROR -1
 #define FILE_ERROR -2
@@ -54,9 +58,6 @@
 
 typedef enum Op { N = 0, P, E, R, L } Op;
 
-// TODO
-// https://en.wikipedia.org/wiki/Flexible_array_member
-
 typedef struct Operation {
     Op name;
     union {
@@ -68,10 +69,12 @@ typedef struct Operation {
 typedef struct Branch {
     char matchSymbol;
     int nextConfiguration;
+    IBranch *info;
     Operation ops[MAX_OPERATION_COUNT];
 } Branch;
 
 typedef struct Configuration {
+    IConfig *info;
     Branch branches[MAX_BRANCH_COUNT];
 } Configuration;
 
@@ -104,6 +107,7 @@ typedef struct IBranch {
     char *matchSymbol;
     IConfig *next;
     int opCount;
+    char *opsString;
     IOperation ops[MAX_OPERATION_COUNT];
 } IBranch;
 
@@ -327,6 +331,7 @@ int find_config(IConfig array[MAX_CONF_COUNT], char *str) {
 int split_on(char *slots[], char *text, char *delimiter) {
     char *context;
 
+
     int index = 0;
     char *unit = strtok_r(text, delimiter, &context);
     while (unit != NULL) {
@@ -470,6 +475,11 @@ IR *parse(Context *c, IR *ir, char *code) {
         char *opsString = strtok_r(NULL, branchParamDelim, &lineContext);
         opsString = trim(opsString);
 
+        // Make copy to use for printing machine state
+        char *tmp = (char *)malloc(strlen(opsString) + 1);
+        strcpy(tmp, opsString);
+        branch->opsString = tmp;
+
         char *ops[MAX_OPERATION_COUNT] = {0};
         int opCount = split_on(ops, opsString, operationDelim);
 
@@ -540,6 +550,7 @@ IR *parse(Context *c, IR *ir, char *code) {
        */
 
     handle_errors(c);
+    c->parseInfo = *ir;
     return ir;
 }
 
@@ -559,7 +570,7 @@ void left(Machine *m, int count) {
 void print(Machine *m, char *sym) {
     assert(strlen(sym) > 0);
     if (strlen(sym) > 1) {
-        while (*sym != 0) {
+        while (*sym != '\0') {
             m->tape[m->pointer] = *sym++;
             right(m, 2);
         }
@@ -579,56 +590,50 @@ void copy_n(size_t SourceACount, char *SourceA, size_t DestCount, char *Dest) {
     *Dest++ = 0;
 }
 
-void print_machine(Machine *m, int topPointerAccessed) {
-    //int upperBound, bool verbose) {
+void print_machine(IConfig *configInfo, IBranch *branchInfo, Machine *m, int topPointerAccessed, int lowerBound,
+        int upperBound, bool verbose) {
     char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
     char pointerBuffer[TAPE_LENGTH];
 
-    int pointer = m->pointer + 1;
+    int pointer = (m->pointer == 0) ? 1 : m->pointer;
 
     for (int i = 0; i <= pointer; i++) {
         pointerBuffer[i] = ' ';
     }
 
+    printf("\n  $ %s:\t%s | %s | %s\n",
+            configInfo->name,
+            branchInfo->matchSymbol,
+            branchInfo->opsString,
+            branchInfo->next->name);
+
     // On the first pass the pointer will be set to 0, but
     // we want it to point on a blank space in the tape
     strcpy(outputBuffer, m->tape);
-    outputBuffer[topPointerAccessed ] = '\0';
+    outputBuffer[topPointerAccessed + 1] = '\0';
 
-    pointerBuffer[pointer + 1] = 'v';
-    pointerBuffer[pointer + 2] = '\0';
-    /*
-    // TODO test for bad size
+    // +1 since we need to make up for the '[' character
+    pointerBuffer[pointer - lowerBound + 1] = 'v';
+    pointerBuffer[pointer - lowerBound +  2] = '\0';
+
     if (lowerBound != -1 || upperBound != -1) {
-    char boundBuffer[WINDOWSIZE + 1];
-    outputBuffer[upperBound] = 0;
-    strcpy(boundBuffer, outputBuffer + lowerBound);
-    strcpy(outputBuffer, boundBuffer);
-
-    outputBuffer[lowerBound + upperBound] = '\0';
+        char boundBuffer[TAPE_LENGTH * 2];
+        outputBuffer[upperBound] = 0;
+        strcpy(boundBuffer, outputBuffer + lowerBound);
+        strcpy(outputBuffer, boundBuffer);
+        outputBuffer[lowerBound + upperBound] = '\0';
     }
-    */
-    // verbose
-    if (true) {
-        Configuration *c = &m->configurations[m->configuration];
-        Branch *b = &c->branches[m->branch];
 
-        char leftLimit = '[';
-        char rightLimit = ']';
-        /*
-           if (upperBound < topPointerAccessed) {
-           rightLimit = '>';
-           }
-           if (lowerBound > 0) {
-           leftLimit = '<';
-           }
-           */
-        printf("%s\n", outputBuffer);
-        //printf("> %c | %s\n%s\n%c%s%c\n\n\n", b->matchSymbol,
-        //       b->nextConfiguration, pointerBuffer, leftLimit, outputBuffer, rightLimit);
-    } else {
-        printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
+    char leftLimit = '[';
+    char rightLimit = ']';
+    if (upperBound < topPointerAccessed) {
+        rightLimit = '>';
     }
+    if (lowerBound > 0) {
+        leftLimit = '<';
+    }
+
+    printf("  %s\n  %c%s%c\n\n",  pointerBuffer, leftLimit, outputBuffer, rightLimit);
 }
 
 void run_machine(Context *context, Machine *m, int iterations, char *result,
@@ -639,13 +644,16 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
     int highBound = window;
     int lowBound = 0;
 
+    int configuration;
+
     while (iterations --> 0) {
         assert(m->pointer <= TAPE_LENGTH);
 
-        Configuration c = m->configurations[m->configuration];
+        Configuration config = m->configurations[configuration];
         for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; branchIndex++)
         {
-            char symbol = m->tape[m->pointer]; Branch branch = c.branches[branchIndex];
+            char symbol = m->tape[m->pointer];
+            Branch branch = config.branches[branchIndex];
 
             // Here we are checking whether or not we are in the correct branch
             // if we are not, we will go on to the next iteration.
@@ -655,8 +663,6 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
                     (branch.matchSymbol == ANY && symbol == 0) ||
                     (branch.matchSymbol == ANY && symbol == 1) ||
                     (branch.matchSymbol == ELSE)) {
-                // For printing purposes
-                m->branch = branchIndex;
 
                 // Execute all operations in branch until a N
                 bool nop = false;
@@ -705,14 +711,8 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
                     lowBound = highBound - window;
                 }
             }
-            //print_machine(m, topPointerAccessed, lowBound, highBound,
-            print_machine(m, topPointerAccessed);
-            /*
-               if (verbose) {
-               true);
-               }
-               */
-            m->configuration = branch.nextConfiguration;
+            print_machine(config.info, branch.info, m, topPointerAccessed, lowBound, highBound, verbose);
+            configuration = branch.nextConfiguration;
             break;
         }
     }
@@ -740,12 +740,14 @@ Machine translate(IR *ir) {
     for (int ci = 0; ci < ir->configCount; ci++) {
         Configuration *conf = &m.configurations[ci];
         IConfig iconf = ir->configs[ci];
+        conf->info = &ir->configs[ci];
 
         // Iterate over each branch in each configuration
         // and fill in its information from the ir
         for (int bi = 0; bi < iconf.branchCount; bi++) {
             Branch *branch = &conf->branches[bi];
             IBranch ibranch = iconf.branches[bi];
+            branch->info = &ir->configs[ci].branches[bi];
 
             // Set the value for the match symbol,
             // translating keywords into their correlated value.
@@ -847,8 +849,10 @@ int main(int argc, char *argv[]) {
 
     float floatResult = parse_binary_point_value(result);
 
-    // Print interpretations of the result
-    printf("\nBinary:\t%s\nString:\t%s\nFloat:\t%f\n", result, stringResult,
+    // Prints interpretations of the result
+    printf("\n Binary:\t%s\n String:\t%s\n Float: \t%f\n",
+            result,
+            stringResult,
             floatResult);
 
     return 0;
