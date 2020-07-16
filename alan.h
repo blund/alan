@@ -15,7 +15,7 @@ typedef struct Error Error;
 typedef struct Context Context;
 
 IR *parse(Context *context, IR *ir, char *bytecode);
-Machine translate(IR ir);
+Machine translate(IR *ir);
 void run_machine(Context *context, Machine *m, int iterations, char *result, bool verbose);
 
 #endif
