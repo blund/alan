@@ -492,17 +492,13 @@ IR *parse(Context *c, IR *ir, char *code) {
                           } break;
                 case 'R': {
                               if (isdigit(*param)) {
-                                  // TODO error
+                                  branch->ops[i].number = *param - 48;
                               }
-                              branch->ops[i].isNum = true;
-                              branch->ops[i].number = *param - 48;
                           } break;
                 case 'L': {
                               if (isdigit(*param)) {
-                                  // TODO error
+                                  branch->ops[i].number = *param - 48;
                               }
-                              branch->ops[i].isNum = true;
-                              branch->ops[i].number = *param - 48;
                           } break;
                 default: {
                              // TODO Feil
@@ -583,56 +579,57 @@ void copy_n(size_t SourceACount, char *SourceA, size_t DestCount, char *Dest) {
     *Dest++ = 0;
 }
 
-/*
-   void PrintMachine(Machine *m, int topPointerAccessed, int lowerBound,
-   int upperBound, bool verbose) {
-   char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
-   char pointerBuffer[TAPE_LENGTH];
+void print_machine(Machine *m, int topPointerAccessed) {
+    //int upperBound, bool verbose) {
+    char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
+    char pointerBuffer[TAPE_LENGTH];
 
-   int pointer = (m->pointer == 0) ? 1 : m->pointer;
+    int pointer = m->pointer + 1;
 
-   for (int i = 0; i <= pointer; i++) {
-   pointerBuffer[i] = ' ';
-   }
+    for (int i = 0; i <= pointer; i++) {
+        pointerBuffer[i] = ' ';
+    }
 
-// On the first pass the pointer will be set to 0, but
-// we want it to point on a blank space in the tape
-strcpy(outputBuffer, m->tape);
-outputBuffer[topPointerAccessed + 1] = '\0';
+    // On the first pass the pointer will be set to 0, but
+    // we want it to point on a blank space in the tape
+    strcpy(outputBuffer, m->tape);
+    outputBuffer[topPointerAccessed ] = '\0';
 
-pointerBuffer[pointer - lowerBound + 1] = 'v';
-pointerBuffer[pointer - lowerBound + 2] = '\0';
+    pointerBuffer[pointer + 1] = 'v';
+    pointerBuffer[pointer + 2] = '\0';
+    /*
+    // TODO test for bad size
+    if (lowerBound != -1 || upperBound != -1) {
+    char boundBuffer[WINDOWSIZE + 1];
+    outputBuffer[upperBound] = 0;
+    strcpy(boundBuffer, outputBuffer + lowerBound);
+    strcpy(outputBuffer, boundBuffer);
 
-// TODO test for bad size
-if (lowerBound != -1 || upperBound != -1) {
-char boundBuffer[WINDOWSIZE + 1];
-outputBuffer[upperBound] = 0;
-strcpy(boundBuffer, outputBuffer + lowerBound);
-strcpy(outputBuffer, boundBuffer);
+    outputBuffer[lowerBound + upperBound] = '\0';
+    }
+    */
+    // verbose
+    if (true) {
+        Configuration *c = &m->configurations[m->configuration];
+        Branch *b = &c->branches[m->branch];
 
-outputBuffer[lowerBound + upperBound] = '\0';
+        char leftLimit = '[';
+        char rightLimit = ']';
+        /*
+           if (upperBound < topPointerAccessed) {
+           rightLimit = '>';
+           }
+           if (lowerBound > 0) {
+           leftLimit = '<';
+           }
+           */
+        printf("%s\n", outputBuffer);
+        //printf("> %c | %s\n%s\n%c%s%c\n\n\n", b->matchSymbol,
+        //       b->nextConfiguration, pointerBuffer, leftLimit, outputBuffer, rightLimit);
+    } else {
+        printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
+    }
 }
-
-if (verbose) {
-Configuration *c = &m->configurations[m->configuration];
-Branch *b = &c->branch[m->branch];
-
-char leftLimit = '[';
-char rightLimit = ']';
-if (upperBound < topPointerAccessed) {
-rightLimit = '>';
-}
-if (lowerBound > 0) {
-leftLimit = '<';
-}
-
-printf("> %s:%s | %s | %s\n%s\n%c%s%c\n\n\n", c->name, b->symbol, b->ops,
-b->next, pointerBuffer, leftLimit, outputBuffer, rightLimit);
-} else {
-printf("%s \n[%s]\n\n", pointerBuffer, outputBuffer);
-}
-}
-*/
 
 void run_machine(Context *context, Machine *m, int iterations, char *result,
         bool verbose) {
@@ -704,12 +701,13 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
                     lowBound = highBound - window;
                 }
             }
+            //print_machine(m, topPointerAccessed, lowBound, highBound,
+            print_machine(m, topPointerAccessed);
             /*
-            if (verbose) {
-                PrintMachine(m, topPointerAccessed, lowBound, highBound,
-                true);
-            }
-            */
+               if (verbose) {
+               true);
+               }
+               */
             m->configuration = branch.nextConfiguration;
             break;
         }
@@ -730,6 +728,10 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
 
 Machine translate(IR *ir) {
     Machine m;
+
+    for (int i = 0; i < TAPE_LENGTH; i++) {
+        m.tape[i] = NONE;
+    }
 
     for (int ci = 0; ci < ir->configCount; ci++) {
         Configuration *conf = &m.configurations[ci];
@@ -780,10 +782,15 @@ Machine translate(IR *ir) {
                     case 'R': {
                                   op->name = R;
                                   op->number = iop.number;
+                                  if (iop.number == 0) {
+                                      op->number = 1;
+                                  }
                               } break;
                     case 'L': {
                                   op->name = L;
-                                  op->number = (int)iop.number;
+                                  if (iop.number == 0) {
+                                      op->number = 1;
+                                  }
                               } break;
                 }
             }
