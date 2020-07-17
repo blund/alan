@@ -65,7 +65,7 @@ typedef struct Configuration {
 typedef struct Machine {
   int pointer;
   char tape[TAPE_LENGTH];
-
+  
   Configuration configurations[MAX_CONF_COUNT];
 } Machine;
 
@@ -120,7 +120,7 @@ typedef struct Context {
 } Context;
 
 char *trim(char *str) {
-  // stolen from
+  // TODO Write a simpler version of this
   // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
   size_t len = 0;
   char *frontp = str;
@@ -177,6 +177,7 @@ void code_error(Context *c, char *msg, int line) {
   } else {
     c->errorOverflow = true;
   }
+
 }
 
 void error(Context *c, char *msg, int line) {
@@ -417,6 +418,7 @@ IR *parse(Context *c, IR *ir, char *code) {
       conf->name = name;
       conf->definedOn = currentLine;
 
+
       // Reset branch index since we are in a new configuration
       branchIndex = 0;
     }
@@ -470,39 +472,28 @@ IR *parse(Context *c, IR *ir, char *code) {
 
       switch (*op) {
         case 'N': {
-          if (*param != '\0') {
-            error(c, "Function N had a parameter, but takes none", currentLine);
-          }
         } break;
+          // TODO Check that param does not exist
+          // This could simply be a warning
         case 'E': {
-          if (*param != '\0') {
-            error(c, "Function E had a parameter, but takes none", currentLine);
-          }
         } break;
+          // TODO Check that param does not exist
+          // This could simply be a warning
         case 'P': {
-          if (*param == '\0') {
-            error(c, "Function P need an argument", currentLine);
-            branch->ops[i].string = param;
-          }
+          branch->ops[i].string = param;
         } break;
         case 'R': {
           if (isdigit(*param)) {
             branch->ops[i].number = *param - 48;
-          } else if (*param != 0) {
-            error(c, "R had a parameter that was not a number", currentLine);
           }
         } break;
         case 'L': {
           if (isdigit(*param)) {
             branch->ops[i].number = *param - 48;
-          } else if (*param != 0) {
-            error(c, "L had a parameter that was not a number", currentLine);
           }
         } break;
         default: {
-          char buffer[128];
-          sprintf(buffer, "Undefined function %c name was referenced", *op);
-          error(c, buffer, currentLine);
+          // TODO Feil
         }
       }
       branch->ops[i].name = *op;
@@ -530,19 +521,15 @@ IR *parse(Context *c, IR *ir, char *code) {
   }
   // Iterate over branches of configs and check that their
   // 'next' function is defined.
-  for (int ci = 0; ci < ir->configCount; ci++) {
-    IConfig *config = &ir->configs[ci];
-    for (int bi = 0; bi < config->branchCount; bi++) {
-      IBranch *branch = &ir->configs[ci].branches[bi];
-      if (!config->branches[bi].next->defined) {
-        char buffer[128];
-        sprintf(buffer,
-                "Configuration '%s' was referenced but not defined",
-                branch->next->name);
-        error(c, buffer, config->definedOn);
-      }
-    }
-  }
+  /* TODO TODO TODO
+     for (int ci = 0; ci < MAX_CONF_COUNT; ci++) {
+     char name = ir.configs[ci].name[0];
+     bool defined = ir.configs[ci].defined;
+     if (name && !defined) {
+     error(c, "a configuration is not properly defined", 0);
+     }
+     }
+     */
 
   handle_errors(c);
   c->parseInfo = *ir;
@@ -550,6 +537,7 @@ IR *parse(Context *c, IR *ir, char *code) {
 }
 
 void right(Machine *m, int count) {
+
   assert(m->pointer != TAPE_LENGTH);
   assert(count > 0 && count < (TAPE_LENGTH - m->pointer));
   m->pointer += count;
