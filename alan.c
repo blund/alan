@@ -18,6 +18,7 @@
 #define MAX_BRANCH_COUNT 32
 #define MAX_OPERATION_COUNT 16
 #define MAX_CONF_COUNT 32
+#define MAX_LINE_COUNT 256
 #define MAX_ERROR 8
 
 #define NONE ' '
@@ -375,15 +376,12 @@ IR *parse(Context *c, IR *ir, char *code) {
     char branchParamDelim[] = "|";
     char operationDelim[] = ",";
 
-    char *lines[MAX_CONF_COUNT] = {0};
+    char *lines[MAX_LINE_COUNT] = {0};
     int lineCount = split_on(lines, code, newline);
-    assert(lineCount < MAX_CONF_COUNT);
-
     IConfig *conf = NULL;
 
     int branchIndex = 0;
     for (int currentLine = 0; currentLine < lineCount; ++currentLine) {
-        ir->configCount += 1;
 
         char *lineContext = lines[currentLine];
 
@@ -399,6 +397,7 @@ IR *parse(Context *c, IR *ir, char *code) {
         // configuration. If it is, create the new configuration in the
         // machine struct and change 'c' to refer to it.
         if (find_in_string(lineContext, ':')) {
+            ir->configCount += 1;
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
             if (is_empty(lineContext) && !name) {
