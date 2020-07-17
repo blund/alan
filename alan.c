@@ -470,8 +470,6 @@ IR *parse(Context *c, IR *ir, char *code) {
 
       switch (*op) {
         case 'N': {
-          // TODO Check that param does not exist
-          // This could simply be a warning
           if (*param != '\0') {
             error(c, "Function N had a parameter, but takes none", currentLine);
           }
