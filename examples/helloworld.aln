@@ -1,6 +1,17 @@
-! In this example, we showcase multi-value-printing
-! This file will, in 15 runs, print "hello world".
-!
+! This program prints 'hello world'
+! into the tape
+
+! It utilises passing several characters
+! to the P function, which implicitly
+! right-shifts twice between each
+! symbol it prints
+
+! We also use markers to denote which
+! character we came from, in order to
+! only have one configuration for each
+! character we want to write. This way,
+! we can use branches to select which
+! letter to print next
 
 h: none      | P01101000 | e
 
@@ -12,6 +23,7 @@ l: E         | R,  P01101100 | mark l
    R         | R,  P01101100 | d
 
 mark l: none | L, PL | l
+
 o: none      | P01101111 | space
    W         | R, P01101111 | r
 
@@ -21,10 +33,13 @@ space: none  | P00100000 | w
 
 w: none | P01110111 | mark w
    else | PX | h
+
 mark w: none | L, PW | o
 
 r: none | P01110010 | mark r
+
 mark r: none | L, PR | l
 
 d: none | P01100100 | mark d
+
 mark d: none | L, PD | space
