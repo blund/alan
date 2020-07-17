@@ -630,6 +630,7 @@ void print_machine(int passCount, IConfig *configInfo, IBranch *branchInfo,
     char *next = branchInfo->next->name;
     printf("\n Pass %i:\n  %s:\t%s | %s | %s\n", passCount, name, match, ops,
             next);
+
     // On the first pass the pointer will be set to 0, but
     // we want it to point on a blank space in the tape
     strcpy(outputBuffer, m->tape);
