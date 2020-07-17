@@ -1,0 +1,4 @@
+begin: none | P1, R2, P0 | next
+
+next: any  | R2      | next
+      else | P0, R2 | next

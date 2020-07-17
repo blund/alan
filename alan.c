@@ -22,7 +22,7 @@
 
 #define NONE ' '
 #define COMMENT_CHAR '!'
-#define ANY '\x7f'
+#define ANY '\x7d'
 #define ELSE '\x7e'
 
 #define WINDOWSIZE 10
@@ -65,7 +65,7 @@ typedef struct Configuration {
 typedef struct Machine {
   int pointer;
   char tape[TAPE_LENGTH];
-  
+
   Configuration configurations[MAX_CONF_COUNT];
 } Machine;
 
@@ -639,8 +639,8 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
       // If we are, we will execute the branch and move on to the next
       // configuration
       if (branch.matchSymbol == symbol ||
-          (branch.matchSymbol == ANY && symbol == 0) ||
-          (branch.matchSymbol == ANY && symbol == 1) ||
+          (branch.matchSymbol == ANY && symbol == '0') ||
+          (branch.matchSymbol == ANY && symbol == '1') ||
           (branch.matchSymbol == ELSE)) {
         // Execute all operations in branch until a N
         bool nop = false;
