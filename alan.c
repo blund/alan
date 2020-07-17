@@ -14,7 +14,7 @@
 
 #include "alan.h"
 
-#define TAPE_LENGTH 256
+#define TAPE_LENGTH 1024
 #define MAX_BRANCH_COUNT 32
 #define MAX_OPERATION_COUNT 16
 #define MAX_CONF_COUNT 32
@@ -605,7 +605,7 @@ void print(Machine *m, char *sym) {
   }
 }
 
-void erase(Machine *m) { m->tape[m->pointer] = 0; }
+void erase(Machine *m) { m->tape[m->pointer] = ' '; }
 
 char read(Machine *m) { return m->tape[m->pointer]; }
 
@@ -616,9 +616,9 @@ void copy_n(size_t SourceACount, char *SourceA, size_t DestCount, char *Dest) {
   *Dest++ = 0;
 }
 
-void print_machine(IConfig *configInfo, IBranch *branchInfo, Machine *m,
-                   int topPointerAccessed, int lowerBound, int upperBound,
-                   bool verbose) {
+void print_machine(int passCount, IConfig *configInfo, IBranch *branchInfo,
+                   Machine *m, int topPointerAccessed, int lowerBound,
+                   int upperBound, bool verbose) {
   char outputBuffer[TAPE_LENGTH];  // Buffer used for printing
   char pointerBuffer[TAPE_LENGTH];
 
@@ -627,9 +627,13 @@ void print_machine(IConfig *configInfo, IBranch *branchInfo, Machine *m,
   for (int i = 0; i <= pointer; i++) {
     pointerBuffer[i] = ' ';
   }
-
-  printf("\n  $ %s:\t%s | %s | %s\n", configInfo->name, branchInfo->matchSymbol,
-         branchInfo->opsString, branchInfo->next->name);
+  printf("%i\n", topPointerAccessed);
+  char *name = configInfo->name;
+  char *match = branchInfo->matchSymbol;
+  char *ops = branchInfo->opsString;
+  char *next = branchInfo->next->name;
+  printf("\n Pass %i:\n  %s:\t%s | %s | %s\n", passCount, name, match, ops,
+         next);
   // On the first pass the pointer will be set to 0, but
   // we want it to point on a blank space in the tape
   strcpy(outputBuffer, m->tape);
@@ -664,19 +668,31 @@ void print_machine(IConfig *configInfo, IBranch *branchInfo, Machine *m,
 void run_machine(Context *context, Machine *m, int iterations, char *result,
                  bool verbose) {
   int topPointerAccessed = 1;  // Value used for determining how much to print
-
   int window = 48;
   int highBound = window;
   int lowBound = 0;
 
   int configuration;
 
+  int passCount = 0;
+
   while (iterations-- > 0) {
+    ++passCount;
     assert(m->pointer <= TAPE_LENGTH);
 
     Configuration config = m->configurations[configuration];
-    for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT; branchIndex++) {
+    for (int branchIndex = 0; branchIndex < MAX_BRANCH_COUNT;
+         branchIndex++) {
       char symbol = m->tape[m->pointer];
+
+      if (branchIndex >= config.info->branchCount) {
+        char buffer[256];
+          sprintf(buffer, "No branch matching the symbol %c was found for configuration %s", symbol, config.info->name);
+
+          error(context, buffer, config.info->definedOn);
+          return;
+      }
+
       Branch branch = config.branches[branchIndex];
 
       // Here we are checking whether or not we are in the correct branch
@@ -734,8 +750,8 @@ void run_machine(Context *context, Machine *m, int iterations, char *result,
           lowBound = highBound - window;
         }
       }
-      print_machine(config.info, branch.info, m, topPointerAccessed, lowBound,
-                    highBound, verbose);
+      print_machine(passCount, config.info, branch.info, m, topPointerAccessed,
+                    lowBound, highBound, verbose);
       configuration = branch.nextConfiguration;
       break;
     }
@@ -867,6 +883,7 @@ int main(int argc, char *argv[]) {
 
   char result[TAPE_LENGTH / 2];
   run_machine(&c, &m, timesToRun, result, verbose);
+  handle_errors(&c);
 
   // Skip the '@'s in the tape during parsing of values
   int resultBegin = 0;
