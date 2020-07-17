@@ -1,0 +1,14 @@
+b:  none    | P@, R, P@, R, P0, R, R, P0, L, L  | o
+
+o:  1       | R, Px, L, L, L                | o
+    0       | N                             | q
+
+q:  any     | R, R                          | q
+    none    | P1, L                         | p
+
+p:  x       | E, R                          | q
+    @       | R                             | f
+    none    | L, L                          | p
+
+f:  any     | R, R                          | f
+    none    | P0, L, L                      | o
