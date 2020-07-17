@@ -624,7 +624,6 @@ void print_machine(int passCount, IConfig *configInfo, IBranch *branchInfo,
     for (int i = 0; i <= pointer; i++) {
         pointerBuffer[i] = ' ';
     }
-    printf("%i\n", topPointerAccessed);
     char *name = configInfo->name;
     char *match = branchInfo->matchSymbol;
     char *ops = branchInfo->opsString;
