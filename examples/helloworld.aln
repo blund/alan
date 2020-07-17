@@ -1,6 +1,35 @@
-! In this example, we showcase multi-value-printing
-! This file will, in 15 runs, print "hello world".
-!
+! This example will print the string
+! "hello world" onto the tape if it is
+! run with 16 passes.
+
+! It utilises passing a longer string
+! of values to the P function,
+! which will print each value with
+! a space between.
+
+! This conforms to how turing
+! explained how things should be
+! laid out on the tape in his paper.
+! The spaces between 1s and 0s should
+! be used for "marking" the previous
+! value.
+
+! In this example, this marking is
+! used to denote which value we were
+! at previously. From this, the configuration
+! determines which branch to go to,
+! and in turn which value that should
+! be printed next. This way, we can have
+! one configuration for each letter, and
+! just use different branches to determine
+! which letter to print next
+
+! This could be written more concisely,
+! but I wanted to very explicitly show
+! how marking is done, by moving back
+! one space and printing the marker value,
+! for instance 'E' in the 'mark e'-configuration.
+
 
 h: none      | P01101000 | e
 
@@ -12,6 +41,7 @@ l: E         | R,  P01101100 | mark l
    R         | R,  P01101100 | d
 
 mark l: none | L, PL | l
+
 o: none      | P01101111 | space
    W         | R, P01101111 | r
 
@@ -21,10 +51,13 @@ space: none  | P00100000 | w
 
 w: none | P01110111 | mark w
    else | PX | h
+
 mark w: none | L, PW | o
 
 r: none | P01110010 | mark r
+
 mark r: none | L, PR | l
 
 d: none | P01100100 | mark d
+
 mark d: none | L, PD | space
