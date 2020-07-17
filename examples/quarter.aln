@@ -1,26 +1,16 @@
-! This is a simple program that
-! prints the value of 1/4, e.g. 0.25
-! in binary onto the pieces of memory that
-! will be printed.
+! This example will print out
+! the binary point values for
+! the number 1/4, or 0.25.
+! Here we see that the placement
+! of the numbers matters;
+! Only every other value is
+! interpreted as the result
+! of the computation, as
+! their neighbours are used
+! to 'mark' the values in
+! more complex configurations,
+! such as in half_sqrt_two.aln.
 
-! Note that keywords and branching are not
-! used, as this is an early example from
-! Annotated Turing used to describe
-! what configurations are.
-
-! If you want, try rewriting this to
-! use the built in keywords, and
-! perhaps even using branching!
-! It should be possible to do in
-! 2 lines, and a single configuration.
-
-! Also note that the result is stored as a
-! binary fraction, and printed
-! by the interpreter as a floating
-! point value.
-
-b: none | P0, R | c
-c: none | R     | d
-d: none | P1, R | e
-e: none | R     | f
-f: none | P0, R | e
+a: none | P0, R2 | b
+b: none | P1, R2 | c
+c: none | P0, R2 | c
