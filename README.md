@@ -50,17 +50,25 @@ make
 Now you can pass the example .aln files to the interpreter, as well as how many passes you want the machine to make, like this:
 ```
 On Windows:
-alan.exe example/helloworld.aln 11
+> alan.exe example/helloworld.aln 11
 
 On Linux/Mac OS
-./alan example/helloworld.aln 11
+> ./alan example/helloworld.aln 11
 
  Binary:        0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
  String:        hello world
  Float:         0.4077976
 ```
+Also note that the amount of passes to make heavily depends on how the configurations are set up. For instance, the included example that calculates sqrt(2)/2 requires 1000000 passes to become accurate to a few decimal places:
+```
+> alan.exe examples\half_sqrt_two.aln 1000000
 
-### Great! How do I write these _m-configurations_ though?
+ Binary:        @1011010100000100111100110011
+ String:        ╡≤0
+ Float:         0.7071067
+ ```
+
+## Great! How do I write these _m-configurations_ though?
 The following is a very simple example from _Annotated Turing_, which produces the decimals in binary for the fraction 1/4.
 ```
 b: none | P0, R | c
@@ -68,7 +76,6 @@ c: none | R     | d
 d: none | P1, R | e
 e: none | R     | f
 f: none | P0, R | e
-
 ```
 At the beginning of each line, we have the **name** of the configuration. This is used to identify the configuration, such that other configurations can get to it.
 After the name, following the `:`, we have the details of the configuration. This consists of three different fields, separated by `|`.
@@ -88,7 +95,7 @@ l: E    | R,  P01101100, L, PL | l
    L    | R,  P01101100        | o
    R    | R,  P01101100        | d
 ```
-Here we see that you can use branches to perform different operations in reaction to different symbols. Note that even though we have not explained what the next fields are, we already understand that what will be done depends on the match symbol of the branch!
+Here we see that you can use branches to perform different operations in reaction to different symbols. Note that even though we have not explained what the next fields are, we already understand that what will be done depends on the match symbol of the branch! Also note that these indentations does not need to be tabulated like this, but can be squished together. I just prefer this look :)
 
 The next field is the **operations** to be executed. There is a small set of instructions built in:
 | Operation | Description |
