@@ -1,35 +1,17 @@
-! This example will print the string
-! "hello world" onto the tape if it is
-! run with 16 passes.
+! This program prints 'hello world'
+! into the tape
 
-! It utilises passing a longer string
-! of values to the P function,
-! which will print each value with
-! a space between.
+! It utilises passing several characters
+! to the P function, which implicitly
+! right-shifts twice between each
+! symbol it prints
 
-! This conforms to how turing
-! explained how things should be
-! laid out on the tape in his paper.
-! The spaces between 1s and 0s should
-! be used for "marking" the previous
-! value.
-
-! In this example, this marking is
-! used to denote which value we were
-! at previously. From this, the configuration
-! determines which branch to go to,
-! and in turn which value that should
-! be printed next. This way, we can have
-! one configuration for each letter, and
-! just use different branches to determine
-! which letter to print next
-
-! This could be written more concisely,
-! but I wanted to very explicitly show
-! how marking is done, by moving back
-! one space and printing the marker value,
-! for instance 'E' in the 'mark e'-configuration.
-
+! We also use markers to denote which
+! character we came from, in order to
+! only have one configuration for each
+! character we want to write. This way,
+! we can use branches to select which
+! letter to print next
 
 h: none      | P01101000 | e
 
