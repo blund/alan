@@ -567,7 +567,8 @@ IR *parse(Context *c, IR *ir, char *code) {
         IConfig *config = &ir->configs[ci];
         for (int bi = 0; bi < config->branchCount; bi++) {
             IBranch *branch = &ir->configs[ci].branches[bi];
-            if (strcmp(branch->matchSymbol, "else") == 0 && bi < config->branchCount) {
+            if ((strcmp(branch->matchSymbol, "else") == 0) &&
+                    bi != config->branchCount-1) {
                 warning(c, "Keyword 'else' was used before final branch of configuration", branch->definedOn);
             }
             if (!config->branches[bi].next->defined) {
