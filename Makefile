@@ -7,10 +7,10 @@ else
 endif
 
 $(target): alan.c
-	clang -o $(target) alan.c $(link)
+	clang alan.c $(link) -std=c99 -o $(target)
 
 debug: alan.c
-	clang alan.c -g -gcodeview -o w:/build/$(target)
+	clang alan.c $(link) -std=c99 -g -gcodeview -o w:/build/$(target)
 
 clean:
 	rm -f turing.o
