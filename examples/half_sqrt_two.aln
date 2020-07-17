@@ -1,4 +1,4 @@
-begin:  none    | P@, R, P@, R,  P1 | new
+begin:  none    | P@, R, P@, R, P1 | new
 
 new:    @       | R | mark digits
         else    | L | new
@@ -35,7 +35,7 @@ find 2nd digit: x    | L    | found 2nd digit
 
 found 2nd digit: 0    | R | add zero
                  1    | R | add one
-                 none | R |add one
+                 none | R | add one
 
 add zero:   r       | Ps    | add finished
             u       | Pv    | add finished
@@ -73,7 +73,8 @@ flag result digits: s       | Pt, R, R  | unflag result digits
                     v       | Pw, R, R  | unflag result digits
                     else    | R, R      | flag result digits
 
-unflag result digits:   v       | Pu, R, R  | unflag result digits
+unflag result digits:   s       | Pr, R, R  | unflag result digits
+                        v       | Pu, R, R  | unflag result digits
                         else    | N         | find digits
 
 
@@ -85,7 +86,7 @@ print zero digit:   0     | R, E, R     | print zero digit
                     none    | P0, R, R, R | cleanup
 
 new digit is one:   @       | R | print one digit
-                    none    | L | new digit is one
+                    else    | L | new digit is one
 
 print one digit:    0     | R, E, R       | print one digit
                     1     | R, E, R       | print one digit
