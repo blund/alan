@@ -1,0 +1,16 @@
+! This example will print out
+! the binary point values for
+! the number 1/4, or 0.25.
+! Here we see that the placement
+! of the numbers matters;
+! Only every other value is
+! interpreted as the result
+! of the computation, as
+! their neighbours are used
+! to 'mark' the values in
+! more complex configurations,
+! such as in half_sqrt_two.aln.
+
+a: none | P0, R2 | b
+b: none | P1, R2 | c
+c: none | P0, R2 | c

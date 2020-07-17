@@ -1,3 +1,19 @@
+! Here we have a simple program demonstrating the
+! three keywords in the Alan language:
+! 'none', 'any' and 'else'.
+
+! 'none' will match to a blank space on memory
+
+! 'any' will, perhaps confusingly, match
+! to either '0' or '1'. The keyword 'either' could
+! be used instead, but 'any' was chosen
+! to conform with the examples in Annotated Turing.
+
+! Finally, there is 'else'. This works much like
+! the 'else' keyword in any other programming language,
+! and will simply match to any character if
+! none of the ones preceding it match.
+
 begin: none | P1, R2, P0 | next
 
 next: any  | R2      | next
