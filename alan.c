@@ -105,7 +105,12 @@ typedef struct IR {
     IConfig configs[MAX_CONF_COUNT];
 } IR;
 
+
+
+typedef enum ErrorType { Err, Warn } ErrorType;
+
 typedef struct Error {
+    ErrorType type;
     char *message;
     int line;
 } Error;
@@ -113,7 +118,6 @@ typedef struct Error {
 typedef struct Context {
     IR parseInfo;
 
-    bool error;
     bool errorOverflow;
     int nextError;
     Error errors[MAX_ERROR];
@@ -167,12 +171,12 @@ char *trim(char *str) {
     return str;
 }
 
-void code_error(Context *c, char *msg, int line) {
-    c->error = true;
+void parse_error(Context *c, char *msg, int line) {
     if (c->nextError < MAX_ERROR) {
         // TODO bound check and assert
         c->errors[c->nextError].message = msg;
         c->errors[c->nextError].line = line;
+        c->errors[c->nextError].type = Err;
         c->nextError++;
     } else {
         c->errorOverflow = true;
@@ -181,11 +185,11 @@ void code_error(Context *c, char *msg, int line) {
 }
 
 void error(Context *c, char *msg, int line) {
-    c->error = true;
     if (c->nextError < MAX_ERROR) {
         // TODO bound check and assert
         c->errors[c->nextError].message = msg;
         c->errors[c->nextError].line = line;
+        c->errors[c->nextError].type = Err;
         c->nextError++;
     } else {
         c->errorOverflow = true;
@@ -197,6 +201,7 @@ void warning(Context *c, char *msg, int line) {
         // TODO bound check and assert
         c->errors[c->nextError].message = msg;
         c->errors[c->nextError].line = line;
+        c->errors[c->nextError].type = Warn;
         c->nextError++;
     } else {
         c->errorOverflow = true;
@@ -204,18 +209,24 @@ void warning(Context *c, char *msg, int line) {
 }
 
 void handle_errors(Context *c) {
+    bool fatal;
     for (int i = 0; i < c->nextError; i++) {
         int line = c->errors[i].line;
         char *msg = c->errors[i].message;
-        if (line == FILE_ERROR) {
+        if (c->errors[i].type == Warn) {
+            fprintf(stderr, "\n\tWarning in line %i:\n\t  %s\n", ++line, msg);
+        } else if (line == FILE_ERROR) {
             fprintf(stderr, "\n\tFile error:\n\t  %s\n", msg);
         } else if (line == ARGUMENT_ERROR) {
             fprintf(stderr, "\n\tArgument error:\n\t  %s\n", msg);
         } else {
             fprintf(stderr, "\n\tError in line %i:\n\t  %s\n", ++line, msg);
         }
+        if (c->errors[i].type == Err) {
+            fatal = true;
+        }
     }
-    if (c->error) {
+    if (fatal) {
         exit(EXIT_FAILURE);
     }
 }
@@ -391,17 +402,17 @@ IR *parse(Context *c, IR *ir, char *code) {
             char *name = strtok_r(NULL, configNameDelim, &lineContext);
             name = trim(name);
             if (is_empty(lineContext) && !name) {
-                code_error(c, "missing configuration name", currentLine);
+                parse_error(c, "missing configuration name", currentLine);
                 lineContext = name;
             };
 
             if (!legal_config_name(name)) {
-                code_error(c, "configuration name must be all lower case", currentLine);
+                parse_error(c, "configuration name must be all lower case", currentLine);
             }
 
             int prevIndex = find_config(ir->configs, name);
             if (ir->configs[prevIndex].defined) {
-                code_error(c, "redefinition of configuration", currentLine);
+                parse_error(c, "redefinition of configuration", currentLine);
             }
 
             int configIndex = insert_config(ir->configs, name);
@@ -423,12 +434,12 @@ IR *parse(Context *c, IR *ir, char *code) {
             branchIndex = 0;
         }
         if (conf == NULL) {
-            code_error(c, "missing configuration name (declare like 'begin: ...'",
+            parse_error(c, "missing configuration name (declare like 'begin: ...'",
                     currentLine);
             continue;
         }
         if (is_empty(lineContext)) {
-            code_error(c, "configuration is missing parameters", currentLine);
+            parse_error(c, "configuration is missing parameters", currentLine);
             continue;
         }
 
@@ -443,14 +454,14 @@ IR *parse(Context *c, IR *ir, char *code) {
 
         for (int i = 0; i < branchIndex; i++) {
             if (strcmp(conf->branches[i].matchSymbol, symbol) == 0) {
-                code_error(c, "branch for given symbol is already defined",
+                parse_error(c, "branch for given symbol is already defined",
                         currentLine);
             }
         }
         branchIndex++;
 
         if (is_empty(symbol)) {
-            code_error(c, "branch is missing match symbol (first parameter)",
+            parse_error(c, "branch is missing match symbol (first parameter)",
                     currentLine);
         };
 
@@ -472,7 +483,7 @@ IR *parse(Context *c, IR *ir, char *code) {
 
             switch (*op) {
                 case 'N': {
-                              if (param != NULL) {
+                              if (*param != '\0') {
                                   error(c, "Function N had a parameter, but takes none", currentLine);
                               }
                           } break;
@@ -525,7 +536,7 @@ IR *parse(Context *c, IR *ir, char *code) {
 
         bool hasNext = true;
         if (is_empty(nextName)) {
-            code_error(c, "branch is missing next configuration (last parameter)",
+            parse_error(c, "branch is missing next configuration (last parameter)",
                     currentLine);
             hasNext = false;
         };
@@ -556,12 +567,15 @@ IR *parse(Context *c, IR *ir, char *code) {
         IConfig *config = &ir->configs[ci];
         for (int bi = 0; bi < config->branchCount; bi++) {
             IBranch *branch = &ir->configs[ci].branches[bi];
+            if (strcmp(branch->matchSymbol, "else") == 0 && bi < config->branchCount) {
+                warning(c, "Keyword 'else' was used before final branch of configuration", branch->definedOn);
+            }
             if (!config->branches[bi].next->defined) {
                 char buffer[128];
                 sprintf(buffer,
                         "Configuration '%s' was referenced but not defined",
                         branch->next->name);
-                error(c, buffer, config->definedOn);
+                parse_error(c, buffer, config->definedOn);
             }
         }
     }
