@@ -1,33 +1,67 @@
-# - NOTE -
-This readme contains slightly outdated information, and will be rewritten in the very near future.
-
 # alan
-A language and interpreter for running turing machines. Inspired by the book _Annotated Turing_.
+An interpreted language for defining and running turing machines. Inspired by the book _Annotated Turing_.
+
+## What is this?
+Alan is a language for defining _m-configurations_ - instructions that can be executed by a turing machine - and an interpreter for running these configurations.
+
+## What does this language look like?
+While m-configurations are mathematically useful, they are not very terse and easy to write in. This language adds some niceties on top of the simple instructions presented by Turing in his paper. Here is an example that prints the good old 'hello world':
+```
+h: none | P01101000 | e
+
+e: none | P01100101, L, PE | l
+
+l: E    | R,  P01101100, L, PL | l
+   L    | R,  P01101100 | o
+   R    | R,  P01101100 | d
 
 
+o: none | P01101111 | space
+   W    | R, P01101111 | r
 
-## What does it do?
-This project defines a language for defining _m-configurations_ to be executed by a turing machine. It also contains an interpreter for said language, that shows the progress and result of the execution.
+space: none  | P00100000 | w
+       D     | R, P00100000 | h
+
+w: none | P01110111, L, PW | o
+   else | PX | h
+
+r: none | P01110010, L, PR | l
+
+d: none | P01100100, L, PD | space
+```
+And running this program will look like this:
+```
+alan.exe examples\helloworld.aln 11
+
+ Binary:        0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
+ String:        hello world
+ Float:         0.4077976
+```
+Yikes! So like I said, not very terse, but it gets the job done. We will be going throught the syntax after presenting how to set up the interpreter and start running some example programs.
+
 
 ## Setting up and running programs
-Simply run `make` to compile the interpreter. You can then run it with the file to interpret and the number of passes to make, like this:
+The default Makefile uses Clang to compile. GCC and CL should probably also work fine. On linux and mac os, you have to pass -lm to link with the math library.
+
+If you have Clang, simply run `make` to compile. 
 ```
 make
-
-Windows:
-alan.exe example/helloworld.aln 15
-
-Linux/Mac OS
-./alan example/helloworld.aln 15
-
-Binary: 0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
-String: hello world
-Float:  0.312515
 ```
-Just change the makefile to fit your needs, for instance if you want to use a different compiler.
+Now you can pass the example .aln files to the interpreter, as well as how many passes you want the machine to make, like this:
+```
+On Windows:
+alan.exe example/helloworld.aln 11
 
-### Example
-The following is a simple example from _Annotated Turing_, which produces the decimals in binary for the fraction 1/4.
+On Linux/Mac OS
+./alan example/helloworld.aln 11
+
+ Binary:        0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100
+ String:        hello world
+ Float:         0.4077976
+```
+
+### Great! How do I write these _m-configurations_ though?
+The following is a very simple example from _Annotated Turing_, which produces the decimals in binary for the fraction 1/4.
 ```
 b: none | P0, R | c
 c: none | R     | d
@@ -36,53 +70,37 @@ e: none | R     | f
 f: none | P0, R | e
 
 ```
+At the beginning of each line, we have the **name** of the configuration. This is used to identify the configuration, such that other configurations can get to it.
+After the name, following the `:`, we have the details of the configuration. This consists of three different fields, separated by `|`.
 
+The first field is the **match symbol**, which in all the configurations above is `none`. When the turing machine is running, it reads a value off its memory. If the value it reads matches this symbol, the configuration will be executed. `none` is a special keyword that refers to a blank piece of memory. The other valid values for this position are `any`, `else` and [printable ascii symbols](https://theasciicode.com.ar/) (except `space` and `~`).
 
+Here is a small overview of the keywords:
+| Keyword | Description |
+|-|-|
+| `none`  | A blank piece of memory |
+| `any`   | Matches to either `0` or `1` |
+| `else`  | Matches any character |
 
-## How do I write programs?
-To ease the process of writing one of these programs, I wrote an interpreter that churns out bytecode(?) that the virtual machine can run.
-It takes in code formated like this:
+Note here that a single configuration can have several **branches** with different match symbols, like you saw in the "hello world" example above:.
 ```
-print0: none | P0, R | print1
-print1: none | P1, R | print0
+l: E    | R,  P01101100, L, PL | l
+   L    | R,  P01101100        | o
+   R    | R,  P01101100        | d
 ```
-This particular program will print alternating 1s and 0s.
-### Formatting
+Here we see that you can use branches to perform different operations in reaction to different symbols. Note that even though we have not explained what the next fields are, we already understand that what will be done depends on the match symbol of the branch!
 
-Turing machines work on a series of *m-configurations*. Each of these configurations contain information about which operations to perform for different symbols, and which configuration to move like next.
-Here is an *m-configuration* from the snippet above, called `print0`, which fittingly will print the value `0` into the current position in memory.
-
-```
-print0: none | P0, R | print1
-```
-
-Each configuration consists of one or more branches, separated by lines. Each of these branches consists of three fields, sperated by vertical bars `|`. These contain the _symbol_ the branch reacts to, the _operations_ to perform for the branch and the name of the _next configuration_.
-
-A configuration with branches will look like this:
-
-```
-print 0 or 1: none | P0, R | print 0 or 1
-              else | P1, R | print 1
-
-print 1: ...
-```
-Also note that it is ok for names to have spaces in them for readability.
-
-#### Symbols
-The first field contains a _symbol_. When an _m-configuration_ is executed, a _symbol_ is read from memory, and a branch is selected if its symbol corresponds to the one that is read.
-
-_Symbols_ in this case denotes ascii characters and the keywords `none` and `else`. `none` represents a blank piece of memory, and `else` means the branch matches any symbol read.
-It is worth noting here that `ÿ` (`0xFF`) is not a valid symbol, as it is used to represent `else` internally. Neither can you actually refer to the _space_ symbol in a configuration, but the `none` keyword translates literally to a space (`0x20`), so that is no issue. Other than that, all sensible ascii letters should be usable.
-
-#### Operations
-The next fields contain the operations to perform for the current branch. This can be a series of several operations, separated by commas. The defined operations are:
+The next field is the **operations** to be executed. There is a small set of instructions built in:
 | Operation | Description |
 |-|-|
-| N | Do nothing, or _halt_ as it is called in some litterature |
-| P_ | Print the following ascii symbol (like P1) |
-| E | Erase the symbol of the current pointer position |
-| R | Move pointer location to the right |
-| L | Move pointer location to the left |
+| N | Do nothing, or _halt_ as it is called in some literature |
+| Pc[cs] | Print the following ascii symbol(s) (like P1 or P10001) |
+| E | Erase the symbol at the current pointer position |
+| R[n] | Move pointer one or several steps to the right (like R or R2)|
+| L[n] | Move pointer one or several steps to the left (just like R) |
 
-#### Next
-The final value is the name of the next *m-configuration* to move to.
+There can practically be as many operations as you want.
+Also note that for when passing a series of symbols to `P`, like `P101`, 
+there will be inserted two right steps between each symbols. We will come back to this.
+
+The final field is the name of the **next** configuration to execute.
