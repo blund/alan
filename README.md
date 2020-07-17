@@ -111,3 +111,6 @@ Also note that for when passing a series of symbols to `P`, like `P101`,
 there will be inserted two right steps between each symbols. We will come back to this.
 
 The final field is the name of the **next** configuration to execute.
+
+## Wait, is that all?
+Yes! If you want to write your own Alan configurations, please refer to the example files included. If you are very intrigued by this, I can warmly reccomend the book that inspired this project, _Annotated Turing_, for further reading.
