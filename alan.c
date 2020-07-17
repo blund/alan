@@ -23,8 +23,8 @@
 
 #define NONE ' '
 #define COMMENT_CHAR '!'
-#define ANY '\x7d'
-#define ELSE '\x7e'
+#define ANY '\x7e'
+#define ELSE '\x7f'
 
 #define WINDOWSIZE 10
 
@@ -901,7 +901,7 @@ int main(int argc, char *argv[]) {
     float floatResult = parse_binary_point_value(normalizedResult);
 
     // Prints interpretations of the result
-    printf("\n Binary:\t%s\n String:\t%s\n Float: \t%f\n", result, stringResult,
+    printf("\n Binary:\t%s\n String:\t%s\n Float: \t%0.7f\n", result, stringResult,
             floatResult);
 
     return 0;
