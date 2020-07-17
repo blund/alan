@@ -665,8 +665,8 @@ void print_machine(IConfig *configInfo, IBranch *branchInfo, Machine *m,
             rightLimit);
 }
 
-void run_machine(Context *context, Machine *m, int iterations, char *result,
-        bool verbose) {
+//void run_machine(Context *context, Machine *m, int iterations, char *result,
+void run_machine(Context *context, Machine *m, int iterations, char *result, bool verbose) {
     int topPointerAccessed = 1;  // Value used for determining how much to print
 
     int window = 48;
@@ -869,13 +869,24 @@ int main(int argc, char *argv[]) {
     parse(&c, &ir, bytecode);
     Machine m = translate(&ir);
 
-    char result[256];
+    char result[TAPE_LENGTH / 2];
     run_machine(&c, &m, timesToRun, result, verbose);
 
-    char stringResult[256];
-    parse_string(stringResult, result);
+    int resultBegin = 0;
+    for (int i; i < TAPE_LENGTH; i++) {
+        if (result[i] == '@') {
+            resultBegin++;
+        } else {
+            break;
+        }
+    }
 
-    float floatResult = parse_binary_point_value(result);
+    char *normalizedResult = &result[resultBegin];
+
+    char stringResult[256];
+    parse_string(stringResult, normalizedResult);
+
+    float floatResult = parse_binary_point_value(normalizedResult);
 
     // Prints interpretations of the result
     printf("\n Binary:\t%s\n String:\t%s\n Float: \t%f\n", result, stringResult,
