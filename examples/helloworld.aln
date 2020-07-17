@@ -13,33 +13,25 @@
 ! we can use branches to select which
 ! letter to print next
 
-h: none      | P01101000 | e
+h: none | P01101000 | e
 
-e: none      | P01100101 | mark e
-mark e: none | L, PE | l
+e: none | P01100101, L, PE | l
 
-l: E         | R,  P01101100 | mark l
-   L         | R,  P01101100 | o
-   R         | R,  P01101100 | d
+l: E    | R,  P01101100, L, PL | l
+   L    | R,  P01101100 | o
+   R    | R,  P01101100 | d
 
-mark l: none | L, PL | l
 
-o: none      | P01101111 | space
-   W         | R, P01101111 | r
+o: none | P01101111 | space
+   W    | R, P01101111 | r
 
 space: none  | P00100000 | w
        D     | R, P00100000 | h
 
 
-w: none | P01110111 | mark w
+w: none | P01110111, L, PW | o
    else | PX | h
 
-mark w: none | L, PW | o
+r: none | P01110010, L, PR | l
 
-r: none | P01110010 | mark r
-
-mark r: none | L, PR | l
-
-d: none | P01100100 | mark d
-
-mark d: none | L, PD | space
+d: none | P01100100, L, PD | space
